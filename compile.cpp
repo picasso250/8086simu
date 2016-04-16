@@ -1,243 +1,181 @@
 #include <vector>
+#include <map>
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <cstdlib>
 #include <cstdio>
+#include <cstring>
+
+#include "instruction.h"
+#include "register.h"
 
 using namespace std;
 
-// 16 bit
-struct word
-{
-	char low;
-	char high;
-	unsigned value()
-	{
-		return (high << 8) | low;
-	}
-	word operator=(unsigned v)
-	{
-		low = v & 0xF;
-		high = v >> 8;
-	}
-	unsigned operator+=(unsigned v)
-	{
-		v += this->value();
-		low = v & 0xF;
-		high = v >> 8;
-	}
+
+map<string,unsigned> instruct_table = {
+	{"MOV",   MOV},
+	{"ADD",   ADD},
+	{"INC",   INC},
+	{"SUB",   SUB},
+	{"MUL",   MUL},
+	{"DIV",   DIV},
+	{"AND",   AND},
+	{ "OR",    OR},
+	{"JMP",   JMP},
+	{"JCXZ", JCXZ},
+	{"INT",   INT},
+	{"NOP",   NOP}
 };
-
-// 16 bit
-struct instruct
-{
-	char ins;
-	char data;
-	instruct operator=(word w)
-	{
-		ins = w.low;
-		data = w.high;
-		return *this;
-	}
+map<string,unsigned> reg_table = {
+	{ "AX",  AX},
+	{ "BX",  BX},
+	{ "CX",  CX},
+	{ "DX",  DX},
+	{ "SI",  SI},
+	{ "DI",  DI},
+	{ "SP",  SP},
+	{ "BP",  BP},
+	{ "IP",  IP},
+	{ "CS",  CS},
+	{ "SS",  SS},
+	{ "DS",  DS},
+	{ "ES",  ES},
+	{"PSW", PSW}
 };
-
-const unsigned MOV   = 0;
-const unsigned ADD   = 1;
-const unsigned INC   = 2;
-const unsigned SUB   = 3;
-const unsigned MUL   = 4;
-const unsigned DIV   = 5;
-const unsigned AND   = 6;
-const unsigned OR    = 7;
-const unsigned JMP   = 8;
-const unsigned JCXZ  = 9;
-const unsigned INT   = 0xA;
-const unsigned NOP   = 0xB;
-
-const unsigned AX  = 0x0;
-const unsigned BX  = 0x1;
-const unsigned CX  = 0x2;
-const unsigned DX  = 0x3;
-const unsigned SI  = 0x4;
-const unsigned DI  = 0x5;
-const unsigned SP  = 0x6;
-const unsigned BP  = 0x7;
-const unsigned IP  = 0x8;
-const unsigned CS  = 0x9;
-const unsigned SS  = 0xA;
-const unsigned DS  = 0xB;
-const unsigned ES  = 0xC;
-const unsigned PSW = 0xD;
 
 const unsigned memory_size = 64*1024*1024; // 64M
 
-word regs[14];
-vector<word> memory;
 bool runing = true;
 
-word load(unsigned pos) {
-	if (pos >= memory_size)
+int read_word(char * buf, int &i, char *word)
+{
+	while (buf[i] == ' ' || buf[i] == ',') i++;
+	int j;
+	for (j = 0; buf[i] &&
+			buf[i] != ',' && buf[i] != ' ' &&
+			buf[i] != '\n' && buf[i] != '\r'; ++i,++j)
 	{
-		throw "read memory out";
+		// printf("copy %c\n", buf[i]);
+		word[j] = buf[i];
 	}
-    if (pos >= memory.size()) memory.resize(pos+1);
-    return memory[pos];
+	word[j] = 0;
+	// printf("word:%s\n", word);
+	return i;
 }
-void store(unsigned pos, word w) {
-	if (pos >= memory_size)
-	{
-		throw "write memory out";
-	}
-    if (pos >= memory.size()) memory.resize(pos+1);
-    memory[pos] = w;
-}
-unsigned get_pos(unsigned seg, unsigned reg)
+bool is_int(char *str)
 {
-	return (regs[seg].value() << 1) + regs[reg].value();
-}
-void do_ins(instruct &ins)
-{
-	char in = ins.ins;
-	char data = ins.data;
-	unsigned basic_instr = in >> 4;
-	unsigned modifier    = in & 0xF;
-	unsigned reg1 = data >> 4;
-	unsigned reg2 = data & 0xF;
-	switch (basic_instr) {
-	case MOV:
-		unsigned pos;
-		cout<<"MOV"<<endl;
-		switch (modifier) {
-			case 0:
-				// reg1 = reg2
-				regs[reg1] = regs[reg2];
-				break;
-			case 1:
-				// store
-				pos = get_pos(DS, reg1);
-				store(pos, regs[reg2]);
-				break;
-			case 2:
-				// load
-				pos = get_pos(DS, reg2);
-				regs[reg1] = load(pos);
-				break;
-			case 3:
-				// instant data
-				regs[reg1] = reg2;
-		}
-		regs[IP] += 2;
-		break;
-	case ADD:
-		cout<<"ADD"<<endl;
-		regs[reg1] = regs[reg1].value() + regs[reg2].value();
-		regs[IP] += 2;
-		break;
-	case INC:
-		cout<<"INC"<<endl;
-		regs[reg1] = regs[reg1].value() + 1;
-		regs[IP] += 2;
-		break;
-	case SUB:
-		cout<<"SUB"<<endl;
-		regs[reg1] = regs[reg1].value() + regs[reg2].value();
-		regs[IP] += 2;
-		break;
-	case MUL:
-		cout<<"MUL"<<endl;
-		regs[reg1] = regs[reg1].value() * regs[reg2].value();
-		regs[IP] += 2;
-		break;
-	case DIV:
-		cout<<"DIV"<<endl;
-		regs[AX] = regs[reg1].value() / regs[reg2].value();
-		regs[DX] = regs[reg1].value() % regs[reg2].value();
-		regs[IP] += 2;
-		break;
-	case AND:
-		cout<<"AND"<<endl;
-		regs[reg1] = regs[reg1].value() & regs[reg2].value();
-		regs[IP] += 2;
-		break;
-	case OR:
-		cout<<"OR"<<endl;
-		regs[reg1] = regs[reg1].value() | regs[reg2].value();
-		regs[IP] += 2;
-		break;
-	case JCXZ:
-		cout<<"JCXZ"<<endl;
-		if (regs[CX].value() != 0) {
-			regs[IP] += 2;
-			break;
-		}
-	case JMP:
-		cout<<"JMP"<<endl;
-		switch (modifier) {
-			case 0:
-				regs[IP] = regs[reg1];
-				break;
-			case 1:
-				regs[IP] = IP + (int)ins.data;
-				break;
-		}
-		break;
-	case INT:
-		switch (regs[reg1].value()) {
-			case 0:
-				runing = false;
-				break;
-		}
-	case NOP:
-		regs[IP] += 2;
-		break;
-	}
-}
-void cpu_run()
-{
-	instruct ins;
-	while (runing) {
-		ins = load(get_pos(CS, IP));
-		do_ins(ins);
-	}
-}
-void run_file(char * file_name)
-{
-	auto start = begin(memory);
-	ifstream is;
-	is.open(file_name, ifstream::in);
-	if (is.bad())
-	{
-		cout<<"not good file: "<<file_name<<cout;
-		exit(1);
-	}
-	char c;
-	word w;
-	while (is.good()) {
-		if (is.get(c))
-			w.high = c;
-		if (is.get(c))
-			w.low = c;
-		else
-			break;
-		printf("load %x%x\n", w.high, w.low);
-	}
-	memory.push_back(w);
-	return;
-
-	regs[IP] = 0;
-	regs[CS] = 0;
-	cpu_run();
+	return str[0] == '+' ||
+		str[0] == '-' ||
+		isdigit(str[0]);
 }
 int main(int argc, char const *argv[])
 {
 	char buf[222];
 	ifstream ifs(argv[1]);
+	ofstream ofs(argv[2]);
+	char inst[22];
+	char param1[22];
+	char param2[22];
 	while (ifs.good()) {
 		ifs.getline(buf, 222);
-		printf("%s\n", buf);
+		printf("----------\n%s\n", buf);
+		if (buf[0] == ';')
+		{
+			continue;
+		}
+		int i = 0;
+		i = read_word(buf, i, inst);
+		if (strlen(inst) == 0)
+		{
+			break;
+		}
+		// inst is instruction
+		printf("i:%s(%d)\n", inst, strlen(inst));
+		unsigned basic_instr = instruct_table[inst];
+		printf("basic_instr: %x\n", basic_instr);
+
+		// read param1
+		i = read_word(buf, i, param1);
+		printf("A:%s\n", param1);
+		if (*(buf+i)) {
+			i = read_word(buf, i, param2);
+			printf("B:%s\n", param2);
+		}
+		unsigned modifier = 0;
+		char *p1 = param1;
+		char *p2 = param2;
+		int p1i = 0, p2i = 0, pi = 0;
+		switch (basic_instr) {
+			case MOV:
+				if (param1[0] == '[')
+				{
+					modifier = 1;
+					p1++;
+					p1[strlen(p1)-1] = 0;
+				}
+				p1i = reg_table[p1];
+				printf("%s => %x\n", p1, p1i);
+				if (p2[0] == '[')
+				{
+					modifier = 2;
+					p2++;
+					p2[strlen(p2)-1] = 0;
+					p2i = reg_table[p2];
+				} else
+				if (is_int(p2)) {
+					modifier = 3;
+					p2i = atoi(p2);
+				} else {
+					p2i = reg_table[p2];
+					printf("%s => %x\n", p2, p2i);
+				}
+				printf("p1:%x,p2:%x\n", p1i, p2i);
+				pi = (p1i << 4) | p2i;
+				break;
+			case ADD:
+			case SUB:
+				p1i = reg_table[p1];
+				if (is_int(p2)) {
+					modifier = 1;
+					p2i = atoi(p2);
+				} else {
+					p2i = reg_table[p2];
+				}
+				pi = (p1i << 4) | p2i;
+				break;
+			case INC:
+				p1i = reg_table[p1];
+				pi = (p1i << 4) | p2i;
+				break;
+			case MUL:
+			case DIV:
+			case AND:
+			case OR:
+				p1i = reg_table[p1];
+				p2i = reg_table[p2];
+				pi = (p1i << 4) | p2i;
+				break;
+			case JCXZ:
+			case JMP:
+				if (is_int(p1))
+				{
+					pi = atoi(p1);
+					printf("'%s' => %x\n", p1, pi);
+				} else {
+					p1i = reg_table[p1];
+					pi = (p1i << 4) | p2i;
+				}
+				break;
+			case INT:
+				pi = atoi(p1);
+				break;
+		}
+		int in = (basic_instr << 4) | modifier;
+		printf("## %x|%x\n", in, pi&0xFF);
+		ofs.put((char)in);
+		ofs.put((char)(pi&0xFF));
 	}
-	// FILE out = fopen(argv[2], "w");
 
 	return 0;
 }
