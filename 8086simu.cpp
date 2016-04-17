@@ -15,6 +15,13 @@ struct word
 {
     char low;
     char high;
+    word()
+    {}
+    word(int v)
+    {
+        low = v & 0xF;
+        high = v >> 8;
+    }
     unsigned value()
     {
         return (high << 8) | low;
@@ -52,7 +59,7 @@ int regs[14];
 vector<char> memory;
 bool runing = true;
 
-word load(unsigned pos) {
+int load(unsigned pos) {
     if (pos >= memory_size) {
         throw "read memory out";
     }
@@ -60,9 +67,12 @@ word load(unsigned pos) {
         int new_size = pos*2 > memory_size ? memory_size : pos*2;
         memory.resize(new_size);
     }
-    return memory[pos];
+    int v = 0;
+    v  = memory[pos*2] << 8;
+    v |= memory[pos*2+1];
+    return v;
 }
-void store(unsigned pos, word w) {
+void store_word(unsigned pos, word w) {
     if (pos >= memory_size) {
         throw "write memory out";
     }
@@ -70,11 +80,17 @@ void store(unsigned pos, word w) {
         int new_size = pos*2 > memory_size ? memory_size : pos*2;
         memory.resize(new_size);
     }
-    memory[pos] = w;
+    memory[pos*2] = w.low;
+    memory[pos*2+1] = w.high;
 }
+void store(unsigned pos, int v) {
+    word w(v);
+    store_word(pos, w);
+}
+
 unsigned get_pos(unsigned seg, unsigned reg)
 {
-    return (regs[seg].value() << 1) + regs[reg].value();
+    return (regs[seg] << 1) + regs[reg];
 }
 void do_ins(instruct &ins)
 {
@@ -107,48 +123,48 @@ void do_ins(instruct &ins)
                 // instant data
                 regs[reg1] = reg2;
         }
-        regs[IP] += 2;
+        regs[IP] += 1;
         break;
     case ADD:
         cout<<"ADD"<<endl;
-        regs[reg1] = regs[reg1].value() + modifier ? reg2 : regs[reg2].value();
-        regs[IP] += 2;
+        regs[reg1] = regs[reg1] + (modifier ? reg2 : regs[reg2]);
+        regs[IP] += 1;
         break;
     case INC:
         cout<<"INC"<<endl;
-        regs[reg1] = regs[reg1].value() + 1;
-        regs[IP] += 2;
+        regs[reg1] = regs[reg1] + 1;
+        regs[IP] += 1;
         break;
     case SUB:
         cout<<"SUB"<<endl;
-        regs[reg1] = regs[reg1].value() + modifier ? reg2 : regs[reg2].value();
-        regs[IP] += 2;
+        regs[reg1] = regs[reg1] + (modifier ? reg2 : regs[reg2]);
+        regs[IP] += 1;
         break;
     case MUL:
         cout<<"MUL"<<endl;
-        regs[reg1] = regs[reg1].value() * regs[reg2].value();
-        regs[IP] += 2;
+        regs[reg1] = regs[reg1] * regs[reg2];
+        regs[IP] += 1;
         break;
     case DIV:
         cout<<"DIV"<<endl;
-        regs[AX] = regs[reg1].value() / regs[reg2].value();
-        regs[DX] = regs[reg1].value() % regs[reg2].value();
-        regs[IP] += 2;
+        regs[AX] = regs[reg1] / regs[reg2];
+        regs[DX] = regs[reg1] % regs[reg2];
+        regs[IP] += 1;
         break;
     case AND:
         cout<<"AND"<<endl;
-        regs[reg1] = regs[reg1].value() & regs[reg2].value();
-        regs[IP] += 2;
+        regs[reg1] = regs[reg1] & regs[reg2];
+        regs[IP] += 1;
         break;
     case OR:
         cout<<"OR"<<endl;
-        regs[reg1] = regs[reg1].value() | regs[reg2].value();
-        regs[IP] += 2;
+        regs[reg1] = regs[reg1] | regs[reg2];
+        regs[IP] += 1;
         break;
     case JCXZ:
         cout<<"JCXZ"<<endl;
-        if (regs[CX].value() != 0) {
-            regs[IP] += 2;
+        if (regs[CX] != 0) {
+            regs[IP] += 1;
             break;
         }
     case JMP:
@@ -163,13 +179,13 @@ void do_ins(instruct &ins)
         }
         break;
     case INT:
-        switch (regs[(int)data].value()) {
+        switch (regs[(int)data]) {
             case 0:
                 runing = false;
                 break;
         }
     case NOP:
-        regs[IP] += 2;
+        regs[IP] += 1;
         break;
     }
 }
@@ -186,7 +202,6 @@ void cpu_run()
 }
 void run_file(const char * file_name)
 {
-    auto start = begin(memory);
     ifstream is;
     is.open(file_name, ifstream::in);
     if (is.bad())
@@ -196,16 +211,24 @@ void run_file(const char * file_name)
     }
     char c;
     word w;
+    printf("load:\n");
+    int i = 0;
     while (is.good()) {
         if (is.get(c))
-            w.high = c;
-        if (is.get(c))
-            w.low = c;
-        else
-            break;
-        printf("load |%02X|%02X|\n", w.high&0xFF, w.low&0xFF);
-    }
-    memory.push_back(w);
+        {
+            if (is.good())
+            {
+                memory.push_back(c);
+                if (i % 2)
+                    printf("|%02X\n",c&0xFF);
+                else
+                    printf("|%02X",c&0xFF);
+            } else {
+                break;
+            }
+        }
+        i++;
+    };
     // return;
 
     regs[IP] = 0;
