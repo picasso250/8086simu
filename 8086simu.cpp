@@ -59,10 +59,9 @@ int regs[14];
 vector<char> memory;
 bool runing = true;
 
-int load(unsigned pos) {
-    if (pos >= memory_size) {
+unsigned load(unsigned pos) {
+    if (pos >= memory_size)
         throw "read memory out";
-    }
     if (pos >= memory.size()) {
         int new_size = pos*2 > memory_size ? memory_size : pos*2;
         memory.resize(new_size);
@@ -73,20 +72,15 @@ int load(unsigned pos) {
     v |= memory[pos*2+1] & 0xFF;
     return v;
 }
-void store_word(unsigned pos, word w) {
-    if (pos >= memory_size) {
+void store(unsigned pos, int w) {
+    if (pos >= memory_size)
         throw "write memory out";
-    }
     if (pos >= memory.size()) {
         int new_size = pos*2 > memory_size ? memory_size : pos*2;
         memory.resize(new_size);
     }
-    memory[pos*2] = w.low;
-    memory[pos*2+1] = w.high;
-}
-void store(unsigned pos, int v) {
-    word w(v);
-    store_word(pos, w);
+    memory[pos*2] = (w >> 8) & 0xFF;
+    memory[pos*2+1] = w & 0xFF;
 }
 
 unsigned get_pos(unsigned seg, unsigned reg)
@@ -99,10 +93,13 @@ void do_ins(unsigned ins)
     unsigned i2    = (ins >>  8) & 0xF;
     unsigned reg1  = (ins >>  4) & 0xF;
     unsigned reg2  = (ins >>  0) & 0xF;
-    int      idata = (ins >>  8) & 0xFF;
-    idata = idata & 0x80 ? idata - 0xFF - 1 : idata; // to signed
+    unsigned idt   = (ins) & 0xFF;
+    // printf("idt %X\n", idt);
+    int idata = idt & 0x80 ? idt - 0xFF - 1 : idt; // to signed
+    // printf("idata %d\n", idata);
     bool is_idata = i1 != 0xF;
     unsigned basic_instr = is_idata ? i1 : i2;
+    unsigned reg = i2;
     // printf("instruction: %X %X\n", in, data&0xFF);
     // printf("reg1: %X, reg1 %X\n", reg1, reg2);
     switch (basic_instr) {
@@ -112,8 +109,8 @@ void do_ins(unsigned ins)
         if (is_idata)
         {
             // instant data
-            regs[reg1] = idata;
-            printf("%s,%d\n", reg_repr[reg1].c_str(), idata);
+            regs[reg] = idata;
+            printf("%s,%d\n", reg_repr[reg].c_str(), idata);
         } else {
             // reg1 = reg2
             regs[reg1] = regs[reg2];
@@ -126,16 +123,23 @@ void do_ins(unsigned ins)
         pos = get_pos(DS, reg2);
         regs[reg1] = load(pos);
         printf("LOAD %s,[%s]\n", reg_repr[reg1].c_str(), reg_repr[reg2].c_str());
+        regs[IP] += 1;
         break;
     case SAVE:
         // store
         pos = get_pos(DS, reg1);
         store(pos, regs[reg2]);
         printf("SAVE [%s],%s\n", reg_repr[reg1].c_str(), reg_repr[reg2].c_str());
+        regs[IP] += 1;
         break;
     case ADD:
         cout<<"ADD"<<endl;
-        regs[reg1] = regs[reg1] + (is_idata ? idata : regs[reg2]);
+        if (is_idata)
+        {
+            regs[reg] = regs[reg] + idata;
+        } else {
+            regs[reg1] = regs[reg1] + regs[reg2];
+        }
         regs[IP] += 1;
         break;
     case INC:
@@ -145,7 +149,12 @@ void do_ins(unsigned ins)
         break;
     case SUB:
         cout<<"SUB"<<endl;
-        regs[reg1] = regs[reg1] - (is_idata ? idata : regs[reg2]);
+        if (is_idata)
+        {
+            regs[reg] = regs[reg] - idata;
+        } else {
+            regs[reg1] = regs[reg1] - regs[reg2];
+        }
         regs[IP] += 1;
         break;
     case MUL:
@@ -200,20 +209,22 @@ void do_ins(unsigned ins)
 }
 void cpu_run()
 {
-    instruct ins;
+    unsigned ins;
     char c = 'y';
     while (runing && c == 'y') {
-        int w = load(get_pos(CS, IP));
+        ins = load(get_pos(CS, IP));
         printf("------------\nI: %04X (%X)\n",
-            w&0xFFFF,get_pos(CS, IP));
-        cin >> c;
+            ins&0xFFFF, get_pos(CS, IP));
+        // cin >> c;
         // printf("%d\n", c);
-        ins.ins = w >> 8;
-        ins.data = w & 0xFF;
         do_ins(ins);
         for (int i = 0; i < reg_repr.size(); ++i)
         {
             printf("%s:%X ", reg_repr[i].c_str(), regs[i]);
+            if (i && i % 8 == 0)
+            {
+                printf("\n");
+            }
         }
         printf("\n");
     }
