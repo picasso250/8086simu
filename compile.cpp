@@ -160,6 +160,7 @@ int main(int argc, char const *argv[])
 			case JMP:
 				if (is_int(p1))
 				{
+					modifier = 1;
 					pi = atoi(p1);
 					printf("'%s' => %x\n", p1, pi);
 				} else {

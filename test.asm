@@ -9,4 +9,4 @@ MOV  [DX],BX
 INC  AX
 INC  DX
 SUB  CX,1
-JCXZ -4 ; LOOP
+JCXZ -5 ; LOOP

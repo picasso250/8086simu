@@ -68,8 +68,9 @@ int load(unsigned pos) {
         memory.resize(new_size);
     }
     int v = 0;
+    // printf("loadm (%X) %02X%02X\n", pos, memory[pos*2], memory[pos*2+1]);
     v  = memory[pos*2] << 8;
-    v |= memory[pos*2+1];
+    v |= memory[pos*2+1] & 0xFF;
     return v;
 }
 void store_word(unsigned pos, word w) {
@@ -96,32 +97,44 @@ void do_ins(instruct &ins)
 {
     char in = ins.ins;
     char data = ins.data;
-    unsigned basic_instr = in >> 4;
+    // printf("instruction: %X %X\n", in, data&0xFF);
+    unsigned basic_instr = (in >> 4) & 0xF;
     unsigned modifier    = in & 0xF;
-    unsigned reg1 = data >> 4;
+    // printf("modifier %X\n", modifier);
+    unsigned reg1 = (data >> 4) & 0xF;
     unsigned reg2 = data & 0xF;
+    // printf("reg1: %X, reg1 %X\n", reg1, reg2);
+    // char cc; cin>>cc;
     switch (basic_instr) {
     case MOV:
         unsigned pos;
-        cout<<"MOV"<<endl;
+        printf("MOV ");
         switch (modifier) {
             case 0:
                 // reg1 = reg2
                 regs[reg1] = regs[reg2];
+                printf("%s,%s\n", reg_repr[reg1].c_str(), reg_repr[reg2].c_str());
                 break;
             case 1:
                 // store
                 pos = get_pos(DS, reg1);
                 store(pos, regs[reg2]);
+                printf("[%s],%s\n", reg_repr[reg1].c_str(), reg_repr[reg2].c_str());
                 break;
             case 2:
                 // load
                 pos = get_pos(DS, reg2);
                 regs[reg1] = load(pos);
+                printf("%s,[%s]\n", reg_repr[reg1].c_str(), reg_repr[reg2].c_str());
                 break;
             case 3:
                 // instant data
                 regs[reg1] = reg2;
+                printf("%s,%d\n", reg_repr[reg1].c_str(), reg2);
+                break;
+            default:
+                throw "unknown modifier";
+                break;
         }
         regs[IP] += 1;
         break;
@@ -137,7 +150,7 @@ void do_ins(instruct &ins)
         break;
     case SUB:
         cout<<"SUB"<<endl;
-        regs[reg1] = regs[reg1] + (modifier ? reg2 : regs[reg2]);
+        regs[reg1] = regs[reg1] - (modifier ? reg2 : regs[reg2]);
         regs[IP] += 1;
         break;
     case MUL:
@@ -162,21 +175,24 @@ void do_ins(instruct &ins)
         regs[IP] += 1;
         break;
     case JCXZ:
-        cout<<"JCXZ"<<endl;
-        if (regs[CX] != 0) {
+        printf("JCXZ :%X?\n", regs[CX]);
+        if (regs[CX] == 0) {
             regs[IP] += 1;
             break;
         }
     case JMP:
-        cout<<"JMP"<<endl;
+        printf("JMP ");
         switch (modifier) {
             case 0:
                 regs[IP] = regs[reg1];
+                printf("[%s]\n", reg_repr[reg1].c_str());
                 break;
             case 1:
-                regs[IP] = IP + (int)ins.data;
+                regs[IP] += (reg2 & 0x8 ? reg2 - 0xF -1 : reg2);
+                printf("%d\n", (reg2 & 0x8) ? reg2 - 0xF -1 : reg2);
                 break;
         }
+        char ccc ; cin>>ccc;
         break;
     case INT:
         switch (regs[(int)data]) {
@@ -192,12 +208,21 @@ void do_ins(instruct &ins)
 void cpu_run()
 {
     instruct ins;
-    int i = 1;
-    while (runing && i) {
-        ins = load(get_pos(CS, IP));
-        printf("I:%X%X(%X)\n", ins.ins&0xFF,ins.data&0xFF,get_pos(CS, IP));
-        cin>>i;
+    char c = 'y';
+    while (runing && c == 'y') {
+        int w = load(get_pos(CS, IP));
+        printf("------------\nI: %04X (%X)\n",
+            w&0xFFFF,get_pos(CS, IP));
+        // cin >> c;
+        // printf("%d\n", c);
+        ins.ins = w >> 8;
+        ins.data = w & 0xFF;
         do_ins(ins);
+        for (int i = 0; i < reg_repr.size(); ++i)
+        {
+            printf("%s:%X ", reg_repr[i].c_str(), regs[i]);
+        }
+        printf("\n");
     }
 }
 void run_file(const char * file_name)
@@ -220,7 +245,7 @@ void run_file(const char * file_name)
             {
                 memory.push_back(c);
                 if (i % 2)
-                    printf("|%02X\n",c&0xFF);
+                    printf("|%02X|\n",c&0xFF);
                 else
                     printf("|%02X",c&0xFF);
             } else {
