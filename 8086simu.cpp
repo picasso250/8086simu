@@ -93,54 +93,49 @@ unsigned get_pos(unsigned seg, unsigned reg)
 {
     return (regs[seg] << 1) + regs[reg];
 }
-void do_ins(instruct &ins)
+void do_ins(unsigned ins)
 {
-    char in = ins.ins;
-    char data = ins.data;
+    unsigned i1    = (ins >> 12) & 0xF;
+    unsigned i2    = (ins >>  8) & 0xF;
+    unsigned reg1  = (ins >>  4) & 0xF;
+    unsigned reg2  = (ins >>  0) & 0xF;
+    int      idata = (ins >>  8) & 0xFF;
+    idata = idata & 0x80 ? idata - 0xFF - 1 : idata; // to signed
+    bool is_idata = i1 != 0xF;
+    unsigned basic_instr = is_idata ? i1 : i2;
     // printf("instruction: %X %X\n", in, data&0xFF);
-    unsigned basic_instr = (in >> 4) & 0xF;
-    unsigned modifier    = in & 0xF;
-    // printf("modifier %X\n", modifier);
-    unsigned reg1 = (data >> 4) & 0xF;
-    unsigned reg2 = data & 0xF;
     // printf("reg1: %X, reg1 %X\n", reg1, reg2);
-    // char cc; cin>>cc;
     switch (basic_instr) {
     case MOV:
         unsigned pos;
         printf("MOV ");
-        switch (modifier) {
-            case 0:
-                // reg1 = reg2
-                regs[reg1] = regs[reg2];
-                printf("%s,%s\n", reg_repr[reg1].c_str(), reg_repr[reg2].c_str());
-                break;
-            case 1:
-                // store
-                pos = get_pos(DS, reg1);
-                store(pos, regs[reg2]);
-                printf("[%s],%s\n", reg_repr[reg1].c_str(), reg_repr[reg2].c_str());
-                break;
-            case 2:
-                // load
-                pos = get_pos(DS, reg2);
-                regs[reg1] = load(pos);
-                printf("%s,[%s]\n", reg_repr[reg1].c_str(), reg_repr[reg2].c_str());
-                break;
-            case 3:
-                // instant data
-                regs[reg1] = reg2;
-                printf("%s,%d\n", reg_repr[reg1].c_str(), reg2);
-                break;
-            default:
-                throw "unknown modifier";
-                break;
+        if (is_idata)
+        {
+            // instant data
+            regs[reg1] = idata;
+            printf("%s,%d\n", reg_repr[reg1].c_str(), idata);
+        } else {
+            // reg1 = reg2
+            regs[reg1] = regs[reg2];
+            printf("%s,%s\n", reg_repr[reg1].c_str(), reg_repr[reg2].c_str());
         }
         regs[IP] += 1;
         break;
+    case LOAD:
+        // load
+        pos = get_pos(DS, reg2);
+        regs[reg1] = load(pos);
+        printf("LOAD %s,[%s]\n", reg_repr[reg1].c_str(), reg_repr[reg2].c_str());
+        break;
+    case SAVE:
+        // store
+        pos = get_pos(DS, reg1);
+        store(pos, regs[reg2]);
+        printf("SAVE [%s],%s\n", reg_repr[reg1].c_str(), reg_repr[reg2].c_str());
+        break;
     case ADD:
         cout<<"ADD"<<endl;
-        regs[reg1] = regs[reg1] + (modifier ? reg2 : regs[reg2]);
+        regs[reg1] = regs[reg1] + (is_idata ? idata : regs[reg2]);
         regs[IP] += 1;
         break;
     case INC:
@@ -150,7 +145,7 @@ void do_ins(instruct &ins)
         break;
     case SUB:
         cout<<"SUB"<<endl;
-        regs[reg1] = regs[reg1] - (modifier ? reg2 : regs[reg2]);
+        regs[reg1] = regs[reg1] - (is_idata ? idata : regs[reg2]);
         regs[IP] += 1;
         break;
     case MUL:
@@ -182,20 +177,18 @@ void do_ins(instruct &ins)
         }
     case JMP:
         printf("JMP ");
-        switch (modifier) {
-            case 0:
-                regs[IP] = regs[reg1];
-                printf("[%s]\n", reg_repr[reg1].c_str());
-                break;
-            case 1:
-                regs[IP] += (reg2 & 0x8 ? reg2 - 0xF -1 : reg2);
-                printf("%d\n", (reg2 & 0x8) ? reg2 - 0xF -1 : reg2);
-                break;
+        if (is_idata)
+        {
+            regs[IP] += idata;
+            printf("%d\n", idata);
+        } else {
+            regs[IP] = regs[reg1];
+            printf("[%s]\n", reg_repr[reg1].c_str());
         }
-        char ccc ; cin>>ccc;
+        // char ccc ; cin>>ccc;
         break;
     case INT:
-        switch (regs[(int)data]) {
+        switch (regs[idata]) {
             case 0:
                 runing = false;
                 break;
@@ -213,7 +206,7 @@ void cpu_run()
         int w = load(get_pos(CS, IP));
         printf("------------\nI: %04X (%X)\n",
             w&0xFFFF,get_pos(CS, IP));
-        // cin >> c;
+        cin >> c;
         // printf("%d\n", c);
         ins.ins = w >> 8;
         ins.data = w & 0xFF;
