@@ -49,6 +49,6 @@ jmp  42     | ip += 42
 jcxz ax     | if (cx) jmp(ax);
 jcxz 42     | if (cx) jmp(42);
 
-其中 m[ax] 的意思是寻址 dx:ax
+其中 m[ax] 的意思是寻址 dx:ax ，也就是 `dx * 16 + ax`
 
 凡是涉及到 idata 的，指令都是长指令，指令前缀都是 `0xF`
