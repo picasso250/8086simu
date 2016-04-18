@@ -85,7 +85,7 @@ void store(unsigned pos, int w) {
 
 unsigned get_pos(unsigned seg, unsigned reg)
 {
-    return (regs[seg] << 1) + regs[reg];
+    return (regs[seg] << 4) + regs[reg];
 }
 void do_ins(unsigned ins)
 {
