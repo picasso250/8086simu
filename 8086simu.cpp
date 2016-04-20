@@ -93,9 +93,9 @@ void do_ins(unsigned ins)
     unsigned i2    = (ins >>  8) & 0xF;
     unsigned reg1  = (ins >>  4) & 0xF;
     unsigned reg2  = (ins >>  0) & 0xF;
-    unsigned idt   = (ins) & 0xFF;
-    // printf("idt %X\n", idt);
-    int idata = idt & 0x80 ? idt - 0xFF - 1 : idt; // to signed
+    unsigned uidt  = (ins) & 0xFF;
+    // printf("uidt %X\n", uidt);
+    int idata = uidt & 0x80 ? uidt - 0xFF - 1 : uidt; // to signed
     // printf("idata %d\n", idata);
     bool is_idata = i1 != 0xF;
     unsigned basic_instr = is_idata ? i1 : i2;
@@ -134,38 +134,25 @@ void do_ins(unsigned ins)
         break;
     case ADD:
         cout<<"ADD"<<endl;
-        if (is_idata)
-        {
-            regs[reg] = regs[reg] + idata;
+        if (is_idata) {
+            regs[reg] = regs[reg] + uidt;
         } else {
             regs[reg1] = regs[reg1] + regs[reg2];
         }
         regs[IP] += 1;
         break;
-    case INC:
-        cout<<"INC"<<endl;
-        regs[reg1] = regs[reg1] + 1;
-        regs[IP] += 1;
-        break;
     case SUB:
         cout<<"SUB"<<endl;
-        if (is_idata)
-        {
-            regs[reg] = regs[reg] - idata;
+        if (is_idata) {
+            regs[reg] = regs[reg] - uidt;
         } else {
             regs[reg1] = regs[reg1] - regs[reg2];
         }
         regs[IP] += 1;
         break;
-    case MUL:
-        cout<<"MUL"<<endl;
-        regs[reg1] = regs[reg1] * regs[reg2];
-        regs[IP] += 1;
-        break;
-    case DIV:
-        cout<<"DIV"<<endl;
-        regs[AX] = regs[reg1] / regs[reg2];
-        regs[DX] = regs[reg1] % regs[reg2];
+    case NOT:
+        cout<<"NOT"<<endl;
+        regs[reg1] = !(regs[reg1]);
         regs[IP] += 1;
         break;
     case AND:
@@ -215,7 +202,7 @@ void cpu_run()
         ins = load(get_pos(CS, IP));
         printf("------------\nI: %04X (%X)\n",
             ins&0xFFFF, get_pos(CS, IP));
-        // cin >> c;
+        cin >> c;
         // printf("%d\n", c);
         do_ins(ins);
         for (int i = 0; i < reg_repr.size(); ++i)
@@ -235,7 +222,7 @@ void run_file(const char * file_name)
     is.open(file_name, ifstream::in);
     if (is.bad())
     {
-        cout<<"not good file: "<<file_name<<cout;
+        printf("not good file: %s\n", file_name);
         exit(1);
     }
     char c;

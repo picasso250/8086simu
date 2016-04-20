@@ -129,12 +129,10 @@ int main(int argc, char const *argv[])
 					p2i = reg_table[p2];
 				}
 				break;
-			case INC:
+			case NOT:
 				p1i = reg_table[p1];
 				// pi = (p1i << 4) | p2i;
 				break;
-			case MUL:
-			case DIV:
 			case AND:
 			case OR:
 				p1i = reg_table[p1];

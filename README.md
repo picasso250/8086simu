@@ -10,11 +10,11 @@
 | 指令 | 二进制 |
 |------|--------|
 mov   | 0
-add   | 1
-inc   | 2
-sub   | 3
-mul   | 4
-div   | 5
+load  | 1
+save  | 2
+add   | 3
+sub   | 4
+not   | 5
 and   | 6
 or    | 7
 jmp   | 8
@@ -40,10 +40,13 @@ mov  ax, bx | ax = bx
 mov  ax, 42 | ax = 42
 load ax, [bx] | ax = m[bx]
 save [ax], bx | m[ax] = bx
-add  ax,bx | ax += bx
+add  ax,bx  | ax += bx
 add  ax, 42 | ax += 42
 sub  ax, bx | ax -= bx
 sub  ax, 42 | ax -= 42
+not  ax     | ax = ^ax
+and  ax,bx  | ax &= bx
+or   ax,bx  | ax |= bx
 jmp  ax     | ip = ax
 jmp  42     | ip += 42
 jcxz ax     | if (cx) jmp(ax);
@@ -51,4 +54,4 @@ jcxz 42     | if (cx) jmp(42);
 
 其中 m[ax] 的意思是寻址 dx:ax ，也就是 `dx * 16 + ax`
 
-凡是涉及到 idata 的，指令都是长指令，指令前缀都是 `0xF`
+凡是涉及到 `idata` 的，指令都是长指令，指令前缀都是 `0xF`

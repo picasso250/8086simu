@@ -6,7 +6,7 @@ ADD DX,CX
 ; LOOP
 LOAD  BX,[AX]
 SAVE  [DX],BX
-INC   AX
-INC   DX
+ADD   AX,1
+ADD   DX,1
 SUB   CX,1
 JCXZ  -5 ; LOOP
