@@ -152,7 +152,7 @@ void do_ins(unsigned ins)
         break;
     case NOT:
         cout<<"NOT"<<endl;
-        regs[reg1] = !(regs[reg1]);
+        regs[reg1] = ~(regs[reg1]);
         regs[IP] += 1;
         break;
     case AND:

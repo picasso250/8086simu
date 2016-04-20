@@ -20,7 +20,7 @@ or    | 7
 jmp   | 8
 jcxz  | 9
 int   | A
-NOP   | B
+nop   | B
 
 指令构成有两种
 
@@ -44,9 +44,9 @@ add  ax,bx  | ax += bx
 add  ax, 42 | ax += 42
 sub  ax, bx | ax -= bx
 sub  ax, 42 | ax -= 42
-not  ax     | ax = ^ax
+not  ax     | ax = ~ax
 and  ax,bx  | ax &= bx
-or   ax,bx  | ax |= bx
+or   ax,bx  | ax \|= bx
 jmp  ax     | ip = ax
 jmp  42     | ip += 42
 jcxz ax     | if (cx) jmp(ax);
