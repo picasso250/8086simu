@@ -7,7 +7,7 @@ root=$(dirname $(pwd)/$0)
 awk '{print "\"" $0 "\"" ","}' $1 > $root/.test.vector.h
 awk '
 BEGIN {c=256}
-/^;assert/ {print "case " c++ ":" $0 ";break;"}
+/^;assert/ {print "case " c++ ":" "printf(\"" $0 ";\\n\")" $0 ";break;"}
 ' $1 > $root/.test.int.h
 
 cd $root

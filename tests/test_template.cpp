@@ -23,19 +23,16 @@ bool runing = true;
 void run_test_file(const char * file_name)
 {
     vector<string> lines = {
-        "MOV AX,1",
-        "MOV BX,2",
-        "ADD AX,BX",
-        ";assert(regs[0]==3)",
+#include ".test.vector.h"
         "INT 0",
     };
     int i = 0;
-    int code = 0;
+    int code = 256;
     for (auto line : lines) {
         unsigned a, b;
         cout<<line<<endl;
         if (line.find(";assert") != string::npos) {
-            line = "INT 256";
+            line = "INT "+to_string(code++);
         } else if (line[0] == ';') {
             cout<<"skip"<<endl;
             continue;

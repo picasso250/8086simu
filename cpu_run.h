@@ -45,7 +45,6 @@ void do_ins(unsigned ins) // 32 bit
     // printf("uidt %X\n", uidt);
 
     // printf("instruction: %X , is_idata: %d\n", inscode, is_idata);
-    // printf("reg1: %X, reg1 %X\n", reg1, reg2);
     unsigned code;
     int res, rem;
     switch (inscode) {
