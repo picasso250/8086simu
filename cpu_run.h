@@ -1,6 +1,9 @@
 #ifndef DO_INS_H
 #define DO_INS_H 1
 
+#include <string>
+#include <vector>
+
 using namespace std;
 
 extern const unsigned memory_size; // because 64K is enough for every thing
@@ -29,6 +32,12 @@ void store(unsigned pos, unsigned w) {
 unsigned get_pos(unsigned seg, unsigned reg)
 {
     return (regs[seg] << 4) + regs[reg];
+}
+
+// 16bit
+int to_signed(unsigned u)
+{
+    return (u & 0x8000) ? (u - 0xFFFF - 1): u;
 }
 void do_ins(unsigned ins) // 32 bit
 {
@@ -78,10 +87,12 @@ void do_ins(unsigned ins) // 32 bit
         regs[IP] += 2;
         break;
     case ADD:
-        cout<<"ADD"<<endl;
+        cout<<"ADD ";
         if (is_idata) {
+            cout<<reg_repr[reg]<<","<<uidt<<" => "<<regs[reg]<<endl;
             regs[reg] = regs[reg] + uidt;
         } else {
+            cout<<reg_repr[reg1]<<","<<reg_repr[reg2]<<" => " <<regs[reg1]<<endl;
             regs[reg1] = regs[reg1] + regs[reg2];
         }
         regs[IP] += 2;
@@ -144,29 +155,39 @@ void do_ins(unsigned ins) // 32 bit
         }
         regs[IP] += 2;
         break;
+    case XOR:
+        cout<<"XOR"<<endl;
+        if (is_idata) {
+            regs[reg] = regs[reg] ^ uidt;
+        } else {
+            regs[reg1] = regs[reg1] ^ regs[reg2];
+        }
+        regs[IP] += 2;
+        break;
     case JCXZ:
-        printf("JCXZ :%X?\n", regs[CX]);
+        printf("JCXZ :%X ? ", regs[CX]);
         if (regs[CX] == 0) {
             regs[IP] += 2;
             break;
         }
         if (is_idata) {
-            regs[IP] = uidt;
-            printf("%d\n", uidt);
+            // printf("%d => %d\n", uidt, to_signed(uidt));
+            regs[IP] += to_signed(uidt);
+            printf("%d\n", to_signed(uidt));
         } else {
-            regs[IP] = regs[reg1];
+            regs[IP] += regs[reg1];
             printf("[%s]\n", reg_repr[reg1].c_str());
         }
+        break;
     case JMP:
         printf("JMP ");
         if (is_idata) {
-            regs[IP] = uidt;
-            printf("%d\n", uidt);
+            regs[IP] += to_signed(uidt);
+            printf("%d\n", to_signed(uidt));
         } else {
-            regs[IP] = regs[reg1];
+            regs[IP] += regs[reg1];
             printf("[%s]\n", reg_repr[reg1].c_str());
         }
-        // char ccc ; cin>>ccc;
         break;
     case INT:
         code = is_idata ? uidt : regs[reg1];
