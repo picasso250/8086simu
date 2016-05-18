@@ -14,6 +14,14 @@
 
 using namespace std;
 
+void put16(ofstream &ofs, unsigned i)
+{
+	char a, b;
+	a = i>>8;
+	// printf("store (%4X) %4X\n", i, a);
+	ofs.put((char)a);
+	ofs.put((char)i);
+}
 int main(int argc, char const *argv[])
 {
 	ifstream ifs(argv[1]);
@@ -21,14 +29,15 @@ int main(int argc, char const *argv[])
 	string line;
 	while (ifs.good()) {
 		getline(ifs, line);
-		printf("----------\n%s\n", line);
+		printf("----------\n%s\n", line.c_str());
 		if (line[0] == ';') {
 			continue;
 		}
 		int in, pi;
 		auto v = parse_ins(line);
-		ofs.put((char)(v[0]&0xFF));
-		ofs.put((char)(v[1]&0xFF));
+		printf("@  %4X|%4X\n", v[0], v[1]);
+		put16(ofs, v[0]);
+		put16(ofs, v[1]);
 	}
 
 	return 0;

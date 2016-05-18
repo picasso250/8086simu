@@ -39,9 +39,8 @@ vector<string> sep2by(string line, char sep)
 	int i = 0;
 	while (line[i] == ' ' || line[i] == ',') i++;
 	auto j = line.find(sep, i);
-	// string inscode = line.substr(i, j);
-	// pair<string, string> ret{inscode, line.substr(j)};
-	return {line.substr(i, j), line.substr(j)};
+	if (j == string::npos) return {line.substr(i), ""};
+	return {line.substr(i, j), line.substr(j+1)};
 }
 bool is_int(string str)
 {
@@ -72,27 +71,26 @@ vector<unsigned> parse_ins(string line)
 
 	// read params
 	v = sep2by(v[1], ',');
-	string param1 = v[0];
-	string param2 = v[1];
-	string p1 = param1;
-	string p2 = param2;
+	string p1 = v[0];
+	string p2 = v[1];
+	cout<<"p1:"<<p1<<", p2:"<<p2<<"("<<p2.size()<<")"<<endl;
 	int p1i = 0, p2i = 0;
 	int idata = 0;
 	bool is_idata = false;
 	switch (basic_instr) {
 		case LOAD:
 		case SAVE:
-			if (param1[0] == '[') {
-				p1 = trimbarackets(param1);
+			if (p1[0] == '[') {
+				p1 = trimbarackets(p1);
 			}
 			p1i = reg_table[p1];
-			printf("%s => %x\n", p1, p1i);
+			printf("%s => %x\n", p1.c_str(), p1i);
 			if (p2[0] == '[') {
-				p2 = trimbarackets(param2);
+				p2 = trimbarackets(p2);
 				p2i = reg_table[p2];
 			} else {
 				p2i = reg_table[p2];
-				printf("%s => %x\n", p2.c_str(), p2i);
+				// printf("%s => %x\n", p2.c_str(), p2i);
 			}
 			printf("p1:%x,p2:%x\n", p1i, p2i);
 			break;
@@ -107,6 +105,7 @@ vector<unsigned> parse_ins(string line)
 				idata = stoi(p2);
 			} else {
 				p2i = reg_table[p2];
+				// cout<<"'"<<p2<<"' => "<<p2i<<endl;
 			}
 			break;
 		case NOT:
@@ -140,16 +139,16 @@ vector<unsigned> parse_ins(string line)
 			break;
 	}
 	unsigned in, pi;
-	if (is_idata)
-	{
+	if (is_idata) {
 		in = ((basic_instr & 0x8) << 8) | p1i;
 		pi = idata;
 	} else {
 		in = basic_instr << 8;
+		// cout<<":"<<p1i<<":"<<p2i<<"=="<<((p1i << 8) | p2i)<<endl;
 		pi = (p1i << 8) | p2i;
 	}
-	printf("## %02X|%02X\n", in, pi&0xFFFF);
+	printf("## %04X|%04X\n", in, pi&0xFFFF);
 
-	return {(in << 16) & 0xFFFF, (pi&0xFFFF)};
+	return {in & 0xFFFF, (pi&0xFFFF)};
 }
 #endif

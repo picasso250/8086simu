@@ -9,4 +9,4 @@ SAVE  [DX],BX
 ADD   AX,1
 ADD   DX,1
 SUB   CX,1
-JCXZ  -5 ; LOOP
+JCXZ  5 ; LOOP
