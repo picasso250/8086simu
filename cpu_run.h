@@ -1,22 +1,13 @@
-#include <vector>
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <cstdlib>
-#include <cstdio>
-#include <cassert>
-
-#include "instruction.h"
-#include "register.h"
-#include "parse_ins.h"
+#ifndef DO_INS_H
+#define DO_INS_H 1
 
 using namespace std;
 
-const unsigned memory_size = 64*1024; // because 64K is enough for every thing
+extern const unsigned memory_size; // because 64K is enough for every thing
 
-int regs[14];
-vector<char> memory(memory_size);
-bool runing = true;
+extern int regs[14];
+extern  vector<char> memory;
+extern bool runing;
 
 unsigned load(unsigned pos) {
     if (pos >= memory_size)
@@ -56,6 +47,7 @@ void do_ins(unsigned ins) // 32 bit
     // printf("instruction: %X , is_idata: %d\n", inscode, is_idata);
     // printf("reg1: %X, reg1 %X\n", reg1, reg2);
     unsigned code;
+    int res, rem;
     switch (inscode) {
     case MOV:
         unsigned pos;
@@ -116,12 +108,18 @@ void do_ins(unsigned ins) // 32 bit
     case DIV:
         cout<<"DIV"<<endl;
         if (is_idata) {
-            regs[reg] = regs[reg] / uidt;
-            regs[DX] = regs[reg] % uidt;
+            printf("%d / %d\n", regs[reg], uidt);
+            res = regs[reg] / uidt;
+            rem = (regs[reg]) % uidt;
+            regs[reg] = res; regs[DX] = rem;
         } else {
-            regs[reg1] = regs[reg1] / regs[reg2];
-            regs[DX] = regs[reg] % regs[reg2];
+            printf("%d / %d\n", regs[reg], regs[reg2]);
+            res = regs[reg1] / regs[reg2];
+            rem = (regs[reg]) % (regs[reg2]);
+            regs[reg1] = res; regs[DX] = rem;
         }
+        printf("%d %d\n", res, rem);
+
         regs[IP] += 2;
         break;
     case NOT:
@@ -178,10 +176,7 @@ void do_ins(unsigned ins) // 32 bit
             case 0:
                 runing = false;
                 break;
-            case 256+0:
-                assert(regs[0]==3);
-                printf("%s\n", "assertassert(regs[0]==3)");
-                break;
+#include "tests/.test.int.h"
         }
     case NOP:
         regs[IP] += 2;
@@ -209,43 +204,4 @@ void cpu_run()
         printf("\n");
     }
 }
-void run_test_file(const char * file_name)
-{
-    vector<string> lines = {
-        "MOV AX,1",
-        "MOV BX,2",
-        "ADD AX,BX",
-        ";assert(regs[0]==3)",
-        "INT 0",
-    };
-    int i = 0;
-    int code = 0;
-    for (auto line : lines) {
-        unsigned a, b;
-        cout<<line<<endl;
-        if (line.find(";assert") != string::npos) {
-            line = "INT 256";
-        } else if (line[0] == ';') {
-            cout<<"skip"<<endl;
-            continue;
-        }
-        auto v = parse_ins(line);
-        a = v[0];
-        b = v[1];
-        store(i*2,   a);
-        store(i*2+1, b);
-        i++;
-    }
-
-    regs[IP] = 0;
-    regs[CS] = 0;
-    cpu_run();
-}
-int main(int argc, char const *argv[])
-{
-    static_assert(sizeof(char) == 1, "char is 8 bit");
-    static_assert(sizeof(int)  >= 2, "int bigger than 16 bit");
-    static_assert((int)(char)0xFF == -1, "char to int");
-    run_test_file(argv[1]);
-    return 0;
-}
+#endif

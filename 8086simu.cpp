@@ -113,12 +113,17 @@ void do_ins(unsigned ins) // 32 bit
     case DIV:
         cout<<"DIV"<<endl;
         if (is_idata) {
-            regs[reg] = regs[reg] / uidt;
-            regs[DX] = regs[reg] % uidt;
+            printf("%d / %d\n", regs[reg], uidt);
+            res = regs[reg] / uidt;
+            rem = (regs[reg]) % uidt;
+            regs[reg] = res; regs[DX] = rem;
         } else {
-            regs[reg1] = regs[reg1] / regs[reg2];
-            regs[DX] = regs[reg] % regs[reg2];
+            printf("%d / %d\n", regs[reg], regs[reg2]);
+            res = regs[reg1] / regs[reg2];
+            rem = (regs[reg]) % (regs[reg2]);
+            regs[reg1] = res; regs[DX] = rem;
         }
+        printf("%d %d\n", res, rem);
         regs[IP] += 2;
         break;
     case NOT:
