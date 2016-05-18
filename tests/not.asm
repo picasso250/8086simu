@@ -1,3 +1,3 @@
 MOV AX,11
 NOT AX
-;assert(regs[AX] == 4)
+;assert(regs[AX] == ~11)

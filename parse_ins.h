@@ -50,7 +50,7 @@ bool is_int(string str)
 }
 string trimbarackets(string word)
 {
-	return word.substr(1, word.size()-1);
+	return word.substr(1, word.size()-2);
 }
 vector<unsigned> parse_ins(string line)
 {
