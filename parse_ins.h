@@ -73,7 +73,7 @@ vector<unsigned> parse_ins(string line)
 	v = sep2by(v[1], ',');
 	string p1 = v[0];
 	string p2 = v[1];
-	cout<<"p1:"<<p1<<", p2:"<<p2<<"("<<p2.size()<<")"<<endl;
+	// cout<<"p1:"<<p1<<", p2:"<<p2<<"("<<p2.size()<<")"<<endl;
 	int p1i = 0, p2i = 0;
 	int idata = 0;
 	bool is_idata = false;
@@ -92,7 +92,7 @@ vector<unsigned> parse_ins(string line)
 				p2i = reg_table[p2];
 				// printf("%s => %x\n", p2.c_str(), p2i);
 			}
-			printf("p1:%x,p2:%x\n", p1i, p2i);
+			// printf("p1:%x,p2:%x\n", p1i, p2i);
 			break;
 		case MOV:
 		case ADD:
@@ -127,8 +127,7 @@ vector<unsigned> parse_ins(string line)
 		case JCXZ:
 		case JMP:
 		case INT:
-			if (is_int(p1))
-			{
+			if (is_int(p1)) {
 				is_idata = true;
 				idata = stoi(p1);
 				// printf("'%s' => %x\n", p1, pi);
@@ -139,8 +138,9 @@ vector<unsigned> parse_ins(string line)
 			break;
 	}
 	unsigned in, pi;
+	// cout<<"is_idata "<<is_idata<<endl;
 	if (is_idata) {
-		in = ((basic_instr & 0x8) << 8) | p1i;
+		in = (basic_instr << 8) | 0x8000 | p1i;
 		pi = idata;
 	} else {
 		in = basic_instr << 8;

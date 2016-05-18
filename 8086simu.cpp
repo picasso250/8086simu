@@ -38,7 +38,9 @@ unsigned get_pos(unsigned seg, unsigned reg)
 }
 void do_ins(unsigned ins) // 32 bit
 {
-    unsigned inscode    = (ins >> 24) & 0x7F;
+    unsigned in    = (ins >> 24) & 0xFF;
+    bool is_idata = in & 0x80;
+    unsigned inscode    = in & 0x7F;
 
     unsigned reg   = (ins >> 16) & 0xFF;
     unsigned uidt  = (ins)       & 0xFFFF;
@@ -48,9 +50,9 @@ void do_ins(unsigned ins) // 32 bit
     unsigned reg3  = (ins >> 16) & 0xFF;
     // printf("uidt %X\n", uidt);
 
-    bool is_idata = ins & 0x8000;
-    // printf("instruction: %X %X\n", in, data&0xFF);
+    // printf("instruction: %X , is_idata: %d\n", inscode, is_idata);
     // printf("reg1: %X, reg1 %X\n", reg1, reg2);
+    unsigned code;
     switch (inscode) {
     case MOV:
         unsigned pos;
@@ -58,8 +60,8 @@ void do_ins(unsigned ins) // 32 bit
         if (is_idata)
         {
             // instant data
-            regs[reg] = idata;
-            printf("%s,%d\n", reg_repr[reg].c_str(), idata);
+            regs[reg] = uidt;
+            printf("%s,%d\n", reg_repr[reg].c_str(), uidt);
         } else {
             // reg1 = reg2
             regs[reg1] = regs[reg2];
@@ -149,8 +151,8 @@ void do_ins(unsigned ins) // 32 bit
             break;
         }
         if (is_idata) {
-            regs[IP] = idata;
-            printf("%d\n", idata);
+            regs[IP] = uidt;
+            printf("%d\n", uidt);
         } else {
             regs[IP] = regs[reg1];
             printf("[%s]\n", reg_repr[reg1].c_str());
@@ -158,8 +160,8 @@ void do_ins(unsigned ins) // 32 bit
     case JMP:
         printf("JMP ");
         if (is_idata) {
-            regs[IP] = idata;
-            printf("%d\n", idata);
+            regs[IP] = uidt;
+            printf("%d\n", uidt);
         } else {
             regs[IP] = regs[reg1];
             printf("[%s]\n", reg_repr[reg1].c_str());
@@ -167,7 +169,9 @@ void do_ins(unsigned ins) // 32 bit
         // char ccc ; cin>>ccc;
         break;
     case INT:
-        switch (regs[idata]) {
+        code = is_idata ? uidt : regs[reg1];
+        printf("INT %d\n", code);
+        switch (code) {
             case 0:
                 runing = false;
                 break;
