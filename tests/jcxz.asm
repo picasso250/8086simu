@@ -1,0 +1,10 @@
+MOV CX,10
+MOV AX,0 ; i
+MOV BX,0 ; SUM
+; DO
+JCXZ 7
+ADD AX,1
+ADD BX,AX
+SUB CX,1
+NOP
+;assert(regs[BX]==5050)
