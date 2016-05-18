@@ -1,4 +1,4 @@
-MOV CX,10
+MOV CX,100
 MOV AX,0 ; i
 MOV BX,0 ; SUM
 ; DO

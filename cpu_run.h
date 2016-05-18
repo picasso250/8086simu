@@ -89,11 +89,13 @@ void do_ins(unsigned ins) // 32 bit
     case ADD:
         cout<<"ADD ";
         if (is_idata) {
-            cout<<reg_repr[reg]<<","<<uidt<<" => "<<regs[reg]<<endl;
+            cout<<reg_repr[reg]<<","<<uidt;
             regs[reg] = regs[reg] + uidt;
+            cout<<" => "<<regs[reg]<<endl;
         } else {
-            cout<<reg_repr[reg1]<<","<<reg_repr[reg2]<<" => " <<regs[reg1]<<endl;
+            cout<<reg_repr[reg1]<<","<<reg_repr[reg2];
             regs[reg1] = regs[reg1] + regs[reg2];
+            cout<<" => " <<regs[reg1]<<endl;
         }
         regs[IP] += 2;
         break;
