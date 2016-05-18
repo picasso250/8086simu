@@ -10,75 +10,24 @@
 
 using namespace std;
 
-// 16 bit
-struct word
-{
-    char low;
-    char high;
-    word()
-    {}
-    word(int v)
-    {
-        low = v & 0xF;
-        high = v >> 8;
-    }
-    unsigned value()
-    {
-        return (high << 8) | low;
-    }
-    word operator=(unsigned v)
-    {
-        low = v & 0xF;
-        high = v >> 8;
-    }
-    unsigned operator+=(unsigned v)
-    {
-        v += this->value();
-        low = v & 0xF;
-        high = v >> 8;
-        return v;
-    }
-};
-
-// 16 bit
-struct instruct
-{
-    char ins;
-    char data;
-    instruct operator=(word w)
-    {
-        ins = w.low;
-        data = w.high;
-        return *this;
-    }
-};
-
-const unsigned memory_size = 64*1024*1024; // 64M
+const unsigned memory_size = 64*1024; // because 64K is enough for every thing
 
 int regs[14];
-vector<char> memory;
+vector<char> memory{memory_size};
 bool runing = true;
 
 unsigned load(unsigned pos) {
     if (pos >= memory_size)
         throw "read memory out";
-    if (pos >= memory.size()) {
-        int new_size = pos*2 > memory_size ? memory_size : pos*2;
-        memory.resize(new_size);
-    }
     int v = 0;
     // printf("loadm (%X) %02X%02X\n", pos, memory[pos*2], memory[pos*2+1]);
     v  = memory[pos*2] << 8;
     v |= memory[pos*2+1] & 0xFF;
     return v;
 }
-void store(unsigned pos, int w) {
+void store(unsigned pos, unsigned w) {
     if (pos >= memory_size)
         throw "write memory out";
-    if (pos >= memory.size()) {
-        int new_size = pos*2 > memory_size ? memory_size : pos*2;
-        memory.resize(new_size);
-    }
     memory[pos*2] = (w >> 8) & 0xFF;
     memory[pos*2+1] = w & 0xFF;
 }
@@ -87,22 +36,22 @@ unsigned get_pos(unsigned seg, unsigned reg)
 {
     return (regs[seg] << 4) + regs[reg];
 }
-void do_ins(unsigned ins)
+void do_ins(unsigned ins) // 32 bit
 {
-    unsigned i1    = (ins >> 12) & 0xF;
-    unsigned i2    = (ins >>  8) & 0xF;
-    unsigned reg1  = (ins >>  4) & 0xF;
-    unsigned reg2  = (ins >>  0) & 0xF;
-    unsigned uidt  = (ins) & 0xFF;
+    unsigned inscode    = (ins >> 24) & 0x7F;
+
+    unsigned reg   = (ins >> 16) & 0xFF;
+    unsigned uidt  = (ins)       & 0xFFFF;
+
+    unsigned reg1  = (ins >>  8) & 0xFF;
+    unsigned reg2  = (ins >>  0) & 0xFF;
+    unsigned reg3  = (ins >> 16) & 0xFF;
     // printf("uidt %X\n", uidt);
-    int idata = uidt & 0x80 ? uidt - 0xFF - 1 : uidt; // to signed
-    // printf("idata %d\n", idata);
-    bool is_idata = i1 != 0xF;
-    unsigned basic_instr = is_idata ? i1 : i2;
-    unsigned reg = i2;
+
+    bool is_idata = ins & 0x8000;
     // printf("instruction: %X %X\n", in, data&0xFF);
     // printf("reg1: %X, reg1 %X\n", reg1, reg2);
-    switch (basic_instr) {
+    switch (inscode) {
     case MOV:
         unsigned pos;
         printf("MOV ");
@@ -116,21 +65,21 @@ void do_ins(unsigned ins)
             regs[reg1] = regs[reg2];
             printf("%s,%s\n", reg_repr[reg1].c_str(), reg_repr[reg2].c_str());
         }
-        regs[IP] += 1;
+        regs[IP] += 2;
         break;
     case LOAD:
         // load
         pos = get_pos(DS, reg2);
         regs[reg1] = load(pos);
         printf("LOAD %s,[%s]\n", reg_repr[reg1].c_str(), reg_repr[reg2].c_str());
-        regs[IP] += 1;
+        regs[IP] += 2;
         break;
     case SAVE:
         // store
         pos = get_pos(DS, reg1);
         store(pos, regs[reg2]);
         printf("SAVE [%s],%s\n", reg_repr[reg1].c_str(), reg_repr[reg2].c_str());
-        regs[IP] += 1;
+        regs[IP] += 2;
         break;
     case ADD:
         cout<<"ADD"<<endl;
@@ -139,7 +88,7 @@ void do_ins(unsigned ins)
         } else {
             regs[reg1] = regs[reg1] + regs[reg2];
         }
-        regs[IP] += 1;
+        regs[IP] += 2;
         break;
     case SUB:
         cout<<"SUB"<<endl;
@@ -148,34 +97,68 @@ void do_ins(unsigned ins)
         } else {
             regs[reg1] = regs[reg1] - regs[reg2];
         }
-        regs[IP] += 1;
+        regs[IP] += 2;
+        break;
+    case MUL:
+        cout<<"MUL"<<endl;
+        if (is_idata) {
+            regs[reg] = regs[reg] * uidt;
+        } else {
+            regs[reg1] = regs[reg1] * regs[reg2];
+        }
+        regs[IP] += 2;
+        break;
+    case DIV:
+        cout<<"DIV"<<endl;
+        if (is_idata) {
+            regs[reg] = regs[reg] / uidt;
+            regs[DX] = regs[reg] % uidt;
+        } else {
+            regs[reg1] = regs[reg1] / regs[reg2];
+            regs[DX] = regs[reg] % regs[reg2];
+        }
+        regs[IP] += 2;
         break;
     case NOT:
         cout<<"NOT"<<endl;
         regs[reg1] = ~(regs[reg1]);
-        regs[IP] += 1;
+        regs[IP] += 2;
         break;
     case AND:
         cout<<"AND"<<endl;
-        regs[reg1] = regs[reg1] & regs[reg2];
-        regs[IP] += 1;
+        if (is_idata) {
+            regs[reg] = regs[reg] & uidt;
+        } else {
+            regs[reg1] = regs[reg1] & regs[reg2];
+        }
+        regs[IP] += 2;
         break;
     case OR:
         cout<<"OR"<<endl;
-        regs[reg1] = regs[reg1] | regs[reg2];
-        regs[IP] += 1;
+        if (is_idata) {
+            regs[reg] = regs[reg] | uidt;
+        } else {
+            regs[reg1] = regs[reg1] | regs[reg2];
+        }
+        regs[IP] += 2;
         break;
     case JCXZ:
         printf("JCXZ :%X?\n", regs[CX]);
         if (regs[CX] == 0) {
-            regs[IP] += 1;
+            regs[IP] += 2;
             break;
+        }
+        if (is_idata) {
+            regs[IP] = idata;
+            printf("%d\n", idata);
+        } else {
+            regs[IP] = regs[reg1];
+            printf("[%s]\n", reg_repr[reg1].c_str());
         }
     case JMP:
         printf("JMP ");
-        if (is_idata)
-        {
-            regs[IP] += idata;
+        if (is_idata) {
+            regs[IP] = idata;
             printf("%d\n", idata);
         } else {
             regs[IP] = regs[reg1];
@@ -190,7 +173,7 @@ void do_ins(unsigned ins)
                 break;
         }
     case NOP:
-        regs[IP] += 1;
+        regs[IP] += 2;
         break;
     }
 }

@@ -1,3 +1,6 @@
+#ifndef REGISTER_H
+#define REGISTER_H 1
+
 #include <vector>
 #include <string>
 
@@ -34,3 +37,4 @@ vector<string> reg_repr = {
 	 "ES",
 	"PSW"
 };
+#endif

@@ -9,49 +9,62 @@
 
 | 指令 | 二进制 |
 |------|--------|
-mov   | 0
-load  | 1
-save  | 2
-add   | 3
-sub   | 4
-not   | 5
-and   | 6
-or    | 7
-jmp   | 8
-jcxz  | 9
-int   | A
-nop   | B
+mov    | 0
+load   | 1
+save   | 2
+add    | 3
+sub    | 4
+mul    | 5
+div    | 6
+not    | 7
+and    | 8
+or     | 9
+xor    | A
+jmp    | B
+jcxz   | C
+int    | D
+nop    | E
 
 指令构成有两种
 
-	  0             4         8                      16
-	  | instruction |   reg   |         idata         |
+	  0             8          16                      32
+	  | instruction |    reg    |         idata         |
 	  
-	  0                       8          12          16
-	  |      instruction      |   reg 1   |   reg 2   |
+	  0             8          16          24          32
+	  | instruction |   reg 3   |   reg 1   |   reg 2   |
 
-称第一种为短指令，第二种为长指令
+第一种是为含有立即数的指令准备的，第二种只操作寄存器。
 
-具有长指令和短指令的指令如下：
+所有的立即数都是无符号整数。
 
-| 指令 | 意义 |
-|------|------|
-mov  ax, bx | ax = bx
-mov  ax, 42 | ax = 42
-load ax, [bx] | ax = m[bx]
-save [ax], bx | m[ax] = bx
-add  ax,bx  | ax += bx
-add  ax, 42 | ax += 42
-sub  ax, bx | ax -= bx
-sub  ax, 42 | ax -= 42
-not  ax     | ax = ~ax
-and  ax,bx  | ax &= bx
-or   ax,bx  | ax \|= bx
-jmp  ax     | ip = ax
-jmp  42     | ip += 42
-jcxz ax     | if (cx) jmp(ax);
-jcxz 42     | if (cx) jmp(42);
+指令码共有八位，其中第一位代表此指令是否为立即数指令。
 
-其中 m[ax] 的意思是寻址 dx:ax ，也就是 `dx * 16 + ax`
+下面是 c 语言式的指令解释
 
-凡是涉及到 `idata` 的，指令都是长指令，指令前缀都是 `0xF`
+|    指令   | 意义 | 内部编码 |
+|-----------|------|----------|
+mov  ax, bx | ax = bx | mov   |
+mov  ax, 42 | ax = 42 | mov_i |
+load ax, [bx] | ax = m[bx] | load |
+save [ax], bx | m[ax] = bx | save |
+add  ax,bx  | ax += bx  | add |
+add  ax, 42 | ax += 42  | add_i
+sub  ax, bx | ax -= bx  | sub
+sub  ax, 42 | ax -= 42  | sub_i
+not  ax     | ax = ~ax  | not
+and  ax,bx  | ax &= bx  | and
+and  ax,42  | ax &= 42  | and_i
+or   ax,bx  | ax \|= bx | or
+or   ax,42  | ax \|= 42 | or_i
+xor  ax,bx  | ax ^= bx  | xor
+xor  ax,42  | ax ^= 42  | xor_i
+jmp  ax     | ip = ax   | jmp
+jmp  42     | ip = 42   | jmp_i
+jcxz ax     | if (cx) jmp(ax); | jcxz
+jcxz 42     | if (cx) jmp(42); | jcxz_i
+int  ax     | intrpt(ax) | int
+int  0      | intrpt(0)  | int_i
+nop         | ;          | nop
+
+其中 m[ax] 的意思是寻址 ds:ax ，也就是 `ds * 16 + ax`
+
