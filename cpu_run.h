@@ -198,7 +198,9 @@ void do_ins(unsigned ins) // 32 bit
             case 0:
                 runing = false;
                 break;
+#ifdef TEST_MODE
 #include "tests/.test.int.h"
+#endif
         }
     case NOP:
         regs[IP] += 2;
@@ -217,13 +219,15 @@ void cpu_run()
         // cin >> c;
         // printf("%d\n", c);
         do_ins(ins<<16|(p&0xFFFF));
-        for (int i = 0; i < reg_repr.size(); ++i) {
-            printf("%s:%X ", reg_repr[i].c_str(), regs[i]);
-            if (i && i % 8 == 0) {
-                printf("\n");
-            }
-        }
-        printf("\n");
+
+        // print regs
+        // for (int i = 0; i < reg_repr.size(); ++i) {
+        //     printf("%s:%X ", reg_repr[i].c_str(), regs[i]);
+        //     if (i && i % 8 == 0) {
+        //         printf("\n");
+        //     }
+        // }
+        // printf("\n");
     }
 }
 #endif

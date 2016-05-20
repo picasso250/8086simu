@@ -12,6 +12,8 @@
 
 using namespace std;
 
+#define TEST_MODE 1
+
 const unsigned memory_size = 64*1024; // because 64K is enough for every thing
 
 int regs[14];
