@@ -7,33 +7,40 @@
 
 ### 指令集
 
-| 指令 | 二进制 |
+| 指令 | 二进制码(十六进制表示) |
 |------|--------|
-mov    | 0
-load   | 1
-save   | 2
-add    | 3
-sub    | 4
-mul    | 5
-div    | 6
-not    | 7
-and    | 8
-or     | 9
-xor    | A
-jmp    | B
-jcxz   | C
-int    | D
-nop    | E
+nop    | 0
+mov    | 1
+load   | 2
+save   | 3
+add    | 4
+sub    | 5
+mul    | 6
+div    | 7
+not    | 8
+and    | 9
+or     | A
+xor    | B
+jmp    | C
+jcxz   | D
+int    | E
+push   | F
+pop    | 10
 
 指令构成有两种
 
 	  0             8          16                      32
 	  | instruction |    reg    |         idata         |
 	  
-	  0             8          16          24          32
-	  | instruction |   reg 3   |   reg 1   |   reg 2   |
+      0             8          16          24          32
+      | instruction |   reg 3   |   reg 1   |   reg 2   |
+
+	  0             8          16
+	  | instruction |    reg    |
 
 第一种是为含有立即数的指令准备的，第二种只操作寄存器。
+
+第三种只有一个寄存器，不过为了实现简单，我们不准备使用这种指令。
 
 所有的立即数都是无符号整数。
 
@@ -43,6 +50,7 @@ nop    | E
 
 |    指令   | 意义 | 内部编码 |
 |-----------|------|----------|
+nop         | ;          | nop
 mov  ax, bx | ax = bx | mov   |
 mov  ax, 42 | ax = 42 | mov_i |
 load ax, [bx] | ax = m[bx] | load |
@@ -64,7 +72,11 @@ jcxz ax     | if (cx) jmp(ax); | jcxz
 jcxz 42     | if (cx) jmp(42); | jcxz_i
 int  ax     | intrpt(ax) | int
 int  0      | intrpt(0)  | int_i
-nop         | ;          | nop
+push ax     | s[++sp] = ax | 
+pop  ax     | ax = s[sp--] | 
 
 其中 m[ax] 的意思是寻址 ds:ax ，也就是 `ds * 16 + ax`
 
+PC 和 SP 都是以16位为字长的（8086是以8位为字长）
+
+jmp 和 jcxz 都是 short jmp

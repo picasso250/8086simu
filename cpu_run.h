@@ -12,6 +12,7 @@ extern int regs[14];
 extern  vector<char> memory;
 extern bool runing;
 
+// load and store is 16 bit
 unsigned load(unsigned pos) {
     if (pos >= memory_size)
         throw "read memory out";
@@ -60,8 +61,7 @@ void do_ins(unsigned ins) // 32 bit
     case MOV:
         unsigned pos;
         printf("MOV ");
-        if (is_idata)
-        {
+        if (is_idata) {
             // instant data
             regs[reg] = uidt;
             printf("%s,%d\n", reg_repr[reg].c_str(), uidt);
@@ -134,7 +134,7 @@ void do_ins(unsigned ins) // 32 bit
 
         regs[IP] += 2;
         break;
-    case NOT:
+    case NOT: // can be short
         cout<<"NOT"<<endl;
         regs[reg1] = ~(regs[reg1]);
         regs[IP] += 2;
@@ -166,7 +166,7 @@ void do_ins(unsigned ins) // 32 bit
         }
         regs[IP] += 2;
         break;
-    case JCXZ:
+    case JCXZ: // can be short
         printf("JCXZ :%X ? ", regs[CX]);
         if (regs[CX] == 0) {
             regs[IP] += 2;
@@ -181,7 +181,7 @@ void do_ins(unsigned ins) // 32 bit
             printf("[%s]\n", reg_repr[reg1].c_str());
         }
         break;
-    case JMP:
+    case JMP: // can be short
         printf("JMP ");
         if (is_idata) {
             regs[IP] += to_signed(uidt);
@@ -191,7 +191,7 @@ void do_ins(unsigned ins) // 32 bit
             printf("[%s]\n", reg_repr[reg1].c_str());
         }
         break;
-    case INT:
+    case INT: // can be short
         code = is_idata ? uidt : regs[reg1];
         printf("INT %d\n", code);
         switch (code) {
@@ -202,7 +202,19 @@ void do_ins(unsigned ins) // 32 bit
 #include "tests/.test.int.h"
 #endif
         }
-    case NOP:
+    case NOP: // can be short
+        regs[IP] += 2;
+        break;
+    case PUSH: // can be short
+        cout<<"PUSH "<<reg_repr[reg1]<<endl;
+        regs[SP]++;
+        store(get_pos(SS, SP), regs[reg1]);
+        regs[IP] += 2;
+        break;
+    case POP: // can be short
+        cout<<"POP "<<reg_repr[reg1]<<endl;
+        regs[reg1] = load(get_pos(SS, SP));
+        regs[SP]--;
         regs[IP] += 2;
         break;
     }
@@ -214,8 +226,8 @@ void cpu_run()
     while (runing && c == 'y') {
         ins = load(get_pos(CS, IP));
         p   = load(get_pos(CS, IP)+1);
-        printf("------------\nI: %04X|%04X\n",
-            ins&0xFFFF, p&0xFFFF);
+        // printf("------------\nI: %04X|%04X\n",
+        //     ins&0xFFFF, p&0xFFFF);
         // cin >> c;
         // printf("%d\n", c);
         do_ins(ins<<16|(p&0xFFFF));

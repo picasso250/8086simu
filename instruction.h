@@ -5,23 +5,26 @@
 
 using namespace std;
 
-const unsigned MOV   = 0;
-const unsigned LOAD  = 1;
-const unsigned SAVE  = 2;
-const unsigned ADD   = 3;
-const unsigned SUB   = 4;
-const unsigned MUL   = 5;
-const unsigned DIV   = 6;
-const unsigned NOT   = 7;
-const unsigned AND   = 8;
-const unsigned OR    = 9;
-const unsigned XOR   = 0xA;
-const unsigned JMP   = 0xB;
-const unsigned JCXZ  = 0xC;
-const unsigned INT   = 0xD;
-const unsigned NOP   = 0xE;
+const unsigned NOP   = 0;
+const unsigned MOV   = 1;
+const unsigned LOAD  = 2;
+const unsigned SAVE  = 3;
+const unsigned ADD   = 4;
+const unsigned SUB   = 5;
+const unsigned MUL   = 6;
+const unsigned DIV   = 7;
+const unsigned NOT   = 8;
+const unsigned AND   = 9;
+const unsigned OR    = 0xA;
+const unsigned XOR   = 0xB;
+const unsigned JMP   = 0xC;
+const unsigned JCXZ  = 0xD;
+const unsigned PUSH  = 0xE;
+const unsigned POP   = 0xF;
+const unsigned INT   = 0x10;
 
 vector<string> instruct_repr = {
+	"NOP",
 	"MOV",
 	"LOAD",
 	"SAVE",
@@ -35,7 +38,8 @@ vector<string> instruct_repr = {
 	"XOR",
 	"JMP",
 	"JCXZ",
+	"PUSH",
+	"POP",
 	"INT",
-	"NOP"
 };
 #endif

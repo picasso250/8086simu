@@ -56,6 +56,7 @@ vector<unsigned> parse_ins(string line)
 {
 	if (instruct_table.size() == 0) {
 		for (int i = 0; i < instruct_repr.size(); ++i) {
+			// cout<<i<<"=>"<<instruct_repr[i]<<endl;
 			instruct_table[instruct_repr[i]] = i;
 		}
 	}
@@ -67,7 +68,7 @@ vector<unsigned> parse_ins(string line)
 	// inst is instruction
 	// printf("i:%s(%d)\n", inst, strlen(inst));
 	unsigned basic_instr = instruct_table[inst];
-	// printf("basic_instr: %x\n", basic_instr);
+	// printf("basic_instr: %X\n", basic_instr);
 
 	// read params
 	v = sep2by(v[1], ',');
@@ -109,6 +110,8 @@ vector<unsigned> parse_ins(string line)
 			}
 			break;
 		case NOT:
+		case PUSH:
+		case POP:
 			p1i = reg_table[p1];
 			// pi = (p1i << 4) | p2i;
 			break;
