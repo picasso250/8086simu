@@ -207,14 +207,14 @@ void do_ins(unsigned ins) // 32 bit
         break;
     case PUSH: // can be short
         cout<<"PUSH "<<reg_repr[reg1]<<endl;
-        regs[SP]++;
+        regs[SP]--;
         store(get_pos(SS, SP), regs[reg1]);
         regs[IP] += 2;
         break;
     case POP: // can be short
         cout<<"POP "<<reg_repr[reg1]<<endl;
         regs[reg1] = load(get_pos(SS, SP));
-        regs[SP]--;
+        regs[SP]++;
         regs[IP] += 2;
         break;
     }

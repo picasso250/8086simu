@@ -72,8 +72,8 @@ jcxz ax     | if (cx) jmp(ax); | jcxz
 jcxz 42     | if (cx) jmp(42); | jcxz_i
 int  ax     | intrpt(ax) | int
 int  0      | intrpt(0)  | int_i
-push ax     | s[++sp] = ax | 
-pop  ax     | ax = s[sp--] | 
+push ax     | s[--sp] = ax | 
+pop  ax     | ax = s[sp++] | 
 
 其中 m[ax] 的意思是寻址 ds:ax ，也就是 `ds * 16 + ax`
 
