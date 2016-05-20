@@ -6,4 +6,4 @@ ADD AX,1
 ADD BX,AX
 SUB CX,1
 JCXZ -6
-;assert(regs[BX]==5050)
+;assert(regs[BX]==55)
