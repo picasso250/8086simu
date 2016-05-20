@@ -177,7 +177,7 @@ void do_ins(unsigned ins) // 32 bit
             regs[IP] += to_signed(uidt);
             printf("%d\n", to_signed(uidt));
         } else {
-            regs[IP] += regs[reg1];
+            regs[IP] = regs[reg1]; // long jump
             printf("[%s]\n", reg_repr[reg1].c_str());
         }
         break;
@@ -187,8 +187,8 @@ void do_ins(unsigned ins) // 32 bit
             regs[IP] += to_signed(uidt);
             printf("%d\n", to_signed(uidt));
         } else {
-            regs[IP] += regs[reg1];
-            printf("[%s]\n", reg_repr[reg1].c_str());
+            regs[IP] = regs[reg1]; // long jump
+            printf("[%s](%d)\n", reg_repr[reg1].c_str(), regs[reg1]);
         }
         break;
     case INT: // can be short

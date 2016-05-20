@@ -85,7 +85,7 @@ vector<unsigned> parse_ins(string line)
 				p1 = trimbarackets(p1);
 			}
 			p1i = reg_table[p1];
-			printf("%s => %x\n", p1.c_str(), p1i);
+			// printf("%s => %x\n", p1.c_str(), p1i);
 			if (p2[0] == '[') {
 				p2 = trimbarackets(p2);
 				p2i = reg_table[p2];
