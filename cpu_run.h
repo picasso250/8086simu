@@ -76,7 +76,8 @@ void do_ins(unsigned ins) // 32 bit
         // load
         pos = get_pos(DS, reg2);
         regs[reg1] = load(pos);
-        printf("LOAD %s,[%s]\n", reg_repr[reg1].c_str(), reg_repr[reg2].c_str());
+        printf("LOAD %s,[%s] (%d)\n",
+            reg_repr[reg1].c_str(), reg_repr[reg2].c_str(), regs[reg1]);
         regs[IP] += 2;
         break;
     case SAVE:
@@ -206,9 +207,10 @@ void do_ins(unsigned ins) // 32 bit
         regs[IP] += 2;
         break;
     case PUSH: // can be short
-        cout<<"PUSH "<<reg_repr[reg1]<<endl;
+        cout<<"PUSH "<<reg_repr[reg1];
         regs[SP]--;
         store(get_pos(SS, SP), regs[reg1]);
+        cout<<"("<<regs[SP]<<")"<<endl;
         regs[IP] += 2;
         break;
     case POP: // can be short
