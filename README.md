@@ -22,7 +22,7 @@ and    | 9
 or     | A
 xor    | B
 jmp    | C
-jcxz   | D
+jcnxz   | D
 int    | E
 push   | F
 pop    | 10
@@ -68,8 +68,8 @@ xor  ax,bx  | ax ^= bx  | xor
 xor  ax,42  | ax ^= 42  | xor_i
 jmp  ax     | ip = ax   | jmp
 jmp  42     | ip = 42   | jmp_i
-jcxz ax     | if (cx) jmp(ax); | jcxz
-jcxz 42     | if (cx) jmp(42); | jcxz_i
+jcnxz ax     | if (cx) jmp(ax); | jcnxz
+jcnxz 42     | if (cx) jmp(42); | jcxz_i
 int  ax     | intrpt(ax) | int
 int  0      | intrpt(0)  | int_i
 push ax     | s[--sp] = ax | 
@@ -79,4 +79,4 @@ pop  ax     | ax = s[sp++] |
 
 PC 和 SP 都是以16位为字长的（8086是以8位为字长）
 
-jmp 和 jcxz 都是 short jmp
+jmp 和 jcnxz 都是 short jmp
