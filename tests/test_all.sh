@@ -16,7 +16,7 @@ do
     
     # Run the individual test script. Suppress its output for a cleaner summary.
     # The individual test will still print asserts.
-    bash test_file.sh "$file" > /dev/null
+    bash test_file.sh "$file"
     
     if [ $? -eq 0 ]; then
         echo "Result: PASSED"

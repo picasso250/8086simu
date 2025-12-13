@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <stdexcept>
 
 using namespace std;
 
@@ -15,7 +16,7 @@ extern bool runing;
 // load and store is 16 bit
 unsigned load(unsigned pos) {
     if (pos >= memory_size)
-        throw "read memory out";
+        throw std::out_of_range("Memory read out of bounds at position: " + std::to_string(pos));
     int v = 0;
     // printf("loadm (%X) %02X%02X\n", pos, memory[pos*2], memory[pos*2+1]);
     v  = memory[pos*2] << 8;
@@ -24,7 +25,7 @@ unsigned load(unsigned pos) {
 }
 void store(unsigned pos, unsigned w) {
     if (pos >= memory_size)
-        throw "write memory out";
+        throw std::out_of_range("Memory write out of bounds at position: " + std::to_string(pos));
     memory[pos*2] = (w >> 8) & 0xFF;
     memory[pos*2+1] = w & 0xFF;
     // printf("store memory%5X in %d\n", w, pos);
@@ -57,6 +58,7 @@ void do_ins(unsigned ins) // 32 bit
     // printf("instruction: %X , is_idata: %d\n", inscode, is_idata);
     unsigned code;
     int res, rem;
+    bool ip_modified = false; // Flag to track if IP was already handled
     switch (inscode) {
     case MOV:
         unsigned pos;
@@ -70,7 +72,6 @@ void do_ins(unsigned ins) // 32 bit
             regs[reg1] = regs[reg2];
             printf("%s,%s\n", reg_repr[reg1].c_str(), reg_repr[reg2].c_str());
         }
-        regs[IP] += 2;
         break;
     case LOAD:
         // load
@@ -78,14 +79,12 @@ void do_ins(unsigned ins) // 32 bit
         regs[reg1] = load(pos);
         printf("LOAD %s,[%s] (%d)\n",
             reg_repr[reg1].c_str(), reg_repr[reg2].c_str(), regs[reg1]);
-        regs[IP] += 2;
         break;
     case SAVE:
         // store
         pos = get_pos(DS, reg1);
         store(pos, regs[reg2]);
         printf("SAVE [%s],%s\n", reg_repr[reg1].c_str(), reg_repr[reg2].c_str());
-        regs[IP] += 2;
         break;
     case ADD:
         cout<<"ADD ";
@@ -98,7 +97,6 @@ void do_ins(unsigned ins) // 32 bit
             regs[reg1] = regs[reg1] + regs[reg2];
             cout<<" => " <<regs[reg1]<<endl;
         }
-        regs[IP] += 2;
         break;
     case SUB:
         cout<<"SUB"<<endl;
@@ -107,7 +105,6 @@ void do_ins(unsigned ins) // 32 bit
         } else {
             regs[reg1] = regs[reg1] - regs[reg2];
         }
-        regs[IP] += 2;
         break;
     case MUL:
         cout<<"MUL"<<endl;
@@ -116,7 +113,6 @@ void do_ins(unsigned ins) // 32 bit
         } else {
             regs[reg1] = regs[reg1] * regs[reg2];
         }
-        regs[IP] += 2;
         break;
     case DIV:
         cout<<"DIV"<<endl;
@@ -132,13 +128,10 @@ void do_ins(unsigned ins) // 32 bit
             regs[reg1] = res; regs[DX] = rem;
         }
         printf("%d %d\n", res, rem);
-
-        regs[IP] += 2;
         break;
     case NOT: // can be short
         cout<<"NOT"<<endl;
         regs[reg1] = ~(regs[reg1]);
-        regs[IP] += 2;
         break;
     case AND:
         cout<<"AND"<<endl;
@@ -147,7 +140,6 @@ void do_ins(unsigned ins) // 32 bit
         } else {
             regs[reg1] = regs[reg1] & regs[reg2];
         }
-        regs[IP] += 2;
         break;
     case OR:
         cout<<"OR"<<endl;
@@ -156,7 +148,6 @@ void do_ins(unsigned ins) // 32 bit
         } else {
             regs[reg1] = regs[reg1] | regs[reg2];
         }
-        regs[IP] += 2;
         break;
     case XOR:
         cout<<"XOR"<<endl;
@@ -165,21 +156,19 @@ void do_ins(unsigned ins) // 32 bit
         } else {
             regs[reg1] = regs[reg1] ^ regs[reg2];
         }
-        regs[IP] += 2;
         break;
-    case JCXZ: // can be short
-        printf("JCXZ :%X ? ", regs[CX]);
-        if (regs[CX] == 0) {
-            regs[IP] += 2;
-            break;
-        }
-        if (is_idata) {
-            // printf("%d => %d\n", uidt, to_signed(uidt));
-            regs[IP] += to_signed(uidt);
-            printf("%d\n", to_signed(uidt));
-        } else {
-            regs[IP] = regs[reg1]; // long jump
-            printf("[%s]\n", reg_repr[reg1].c_str());
+    case JCNXZ: // can be short
+        printf("JCNXZ :%X ? ", regs[CX]);
+        if (regs[CX] != 0) {
+            if (is_idata) {
+                // printf("%d => %d\n", uidt, to_signed(uidt));
+                regs[IP] += to_signed(uidt);
+                printf("%d\n", to_signed(uidt));
+            } else {
+                regs[IP] = regs[reg1]; // long jump
+                printf("[%s]\n", reg_repr[reg1].c_str());
+            }
+            ip_modified = true;
         }
         break;
     case JMP: // can be short
@@ -191,6 +180,7 @@ void do_ins(unsigned ins) // 32 bit
             regs[IP] = regs[reg1]; // long jump
             printf("[%s](%d)\n", reg_repr[reg1].c_str(), regs[reg1]);
         }
+        ip_modified = true;
         break;
     case INT: // can be short
         code = is_idata ? uidt : regs[reg1];
@@ -204,21 +194,21 @@ void do_ins(unsigned ins) // 32 bit
 #endif
         }
     case NOP: // can be short
-        regs[IP] += 2;
         break;
     case PUSH: // can be short
         cout<<"PUSH "<<reg_repr[reg1];
         regs[SP]--;
         store(get_pos(SS, SP), regs[reg1]);
         cout<<"("<<regs[SP]<<")"<<endl;
-        regs[IP] += 2;
         break;
     case POP: // can be short
         cout<<"POP "<<reg_repr[reg1]<<endl;
         regs[reg1] = load(get_pos(SS, SP));
         regs[SP]++;
-        regs[IP] += 2;
         break;
+    }
+    if (!ip_modified) {
+        regs[IP] += 2;
     }
 }
 void cpu_run()

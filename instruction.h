@@ -5,6 +5,8 @@
 
 using namespace std;
 
+const unsigned I_DATA_FLAG = 0x8000; // a.k.a. the highest bit of a 16-bit word
+
 const unsigned NOP   = 0;
 const unsigned MOV   = 1;
 const unsigned LOAD  = 2;
@@ -18,7 +20,7 @@ const unsigned AND   = 9;
 const unsigned OR    = 0xA;
 const unsigned XOR   = 0xB;
 const unsigned JMP   = 0xC;
-const unsigned JCXZ  = 0xD;
+const unsigned JCNXZ  = 0xD;
 const unsigned PUSH  = 0xE;
 const unsigned POP   = 0xF;
 const unsigned INT   = 0x10;
@@ -37,7 +39,7 @@ vector<string> instruct_repr = {
 	"OR",
 	"XOR",
 	"JMP",
-	"JCXZ",
+	"JCNXZ",
 	"PUSH",
 	"POP",
 	"INT",

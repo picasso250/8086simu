@@ -127,7 +127,7 @@ vector<unsigned> parse_ins(string line)
 			}
 			// pi = (p1i << 4) | p2i;
 			break;
-		case JCXZ:
+		case JCNXZ:
 		case JMP:
 		case INT:
 			if (is_int(p1)) {
@@ -143,9 +143,18 @@ vector<unsigned> parse_ins(string line)
 	unsigned in, pi;
 	// cout<<"is_idata "<<is_idata<<endl;
 	if (is_idata) {
-		in = (basic_instr << 8) | 0x8000 | p1i;
+        // Format 1: Instruction with Immediate Data
+        // 16 bits for instruction word:
+        // Bit 15:    1 (indicates immediate data)
+        // Bit 8-14:  7-bit instruction code (e.g., MOV, ADD)
+        // Bit 0-7:   Register operand (e.g., AX, BX)
+		in = (basic_instr << 8) | I_DATA_FLAG | p1i;
 		pi = idata;
 	} else {
+        // Format 2: Instruction with only Registers
+        // 16 bits for parameters word:
+        // Bit 8-15:  Register operand 1
+        // Bit 0-7:   Register operand 2
 		in = basic_instr << 8;
 		// cout<<":"<<p1i<<":"<<p2i<<"=="<<((p1i << 8) | p2i)<<endl;
 		pi = (p1i << 8) | p2i;

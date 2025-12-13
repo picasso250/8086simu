@@ -57,6 +57,12 @@ int main(int argc, char const *argv[])
     static_assert(sizeof(char) == 1, "char is 8 bit");
     static_assert(sizeof(int)  >= 2, "int bigger than 16 bit");
     static_assert((int)(char)0xFF == -1, "char to int");
-    run_file(argv[1]);
+    try {
+        run_file(argv[1]);
+    } catch (const std::exception& e) {
+        std::cerr << "An error occurred: " << e.what() << std::endl;
+        // You can also print the final state of registers here for debugging
+        return 1;
+    }
     return 0;
 }
