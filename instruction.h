@@ -24,6 +24,13 @@ const unsigned JCNXZ  = 0xD;
 const unsigned PUSH  = 0xE;
 const unsigned POP   = 0xF;
 const unsigned INT   = 0x10;
+const unsigned CMP   = 0x11;
+const unsigned JE    = 0x12;
+const unsigned JNE   = 0x13;
+const unsigned JG    = 0x14;
+const unsigned JGE   = 0x15;
+const unsigned JL    = 0x16;
+const unsigned JLE   = 0x17;
 
 vector<string> instruct_repr = {
 	"NOP",
@@ -43,5 +50,12 @@ vector<string> instruct_repr = {
 	"PUSH",
 	"POP",
 	"INT",
+	"CMP",
+	"JE",
+	"JNE",
+	"JG",
+	"JGE",
+	"JL",
+	"JLE",
 };
 #endif

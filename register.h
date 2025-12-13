@@ -21,6 +21,10 @@ const unsigned DS  = 0xB;
 const unsigned ES  = 0xC;
 const unsigned PSW = 0xD;
 
+const unsigned ZF_MASK = 0x0001; // Zero Flag
+const unsigned SF_MASK = 0x0002; // Sign Flag
+const unsigned OF_MASK = 0x0004; // Overflow Flag
+
 vector<string> reg_repr = {
 	 "AX",
 	 "BX",

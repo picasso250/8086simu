@@ -26,6 +26,23 @@ jcnxz   | D
 int    | E
 push   | F
 pop    | 10
+cmp    | 11
+je     | 12
+jne    | 13
+jg     | 14
+jge    | 15
+jl     | 16
+jle    | 17
+
+### 标志寄存器 (PSW)
+
+`PSW` 是一个16位的程序状态字寄存器，它包含着CPU执行指令后产生的各种状态信息，主要用于条件跳转。
+
+- **ZF (Zero Flag)**: 零标志位。如果算术或逻辑运算的结果为0，则ZF被置位（为1），否则清零（为0）。
+- **SF (Sign Flag)**: 符号标志位。如果算术运算的结果为负（即最高位为1），则SF被置位，否则清零。
+- **OF (Overflow Flag)**: 溢出标志位。如果带符号算术运算的结果超出了16位有符号数的表示范围，则OF被置位。
+
+`ADD`, `SUB`, `CMP` 等指令会影响这些标志位。
 
 指令构成有两种
 
@@ -59,17 +76,25 @@ add  ax,bx  | ax += bx  | add |
 add  ax, 42 | ax += 42  | add_i
 sub  ax, bx | ax -= bx  | sub
 sub  ax, 42 | ax -= 42  | sub_i
+cmp  ax, bx | ax - bx, set flags | cmp
+cmp  ax, 42 | ax - 42, set flags | cmp_i
 not  ax     | ax = ~ax  | not
 and  ax,bx  | ax &= bx  | and
 and  ax,42  | ax &= 42  | and_i
-or   ax,bx  | ax \|= bx | or
-or   ax,42  | ax \|= 42 | or_i
+or   ax,bx  | ax |= bx | or
+or   ax,42  | ax |= 42 | or_i
 xor  ax,bx  | ax ^= bx  | xor
-xor  ax,42  | ax ^= 42  | xor_i
+xor  ax,42  | ax ^= 42 | xor_i
 jmp  ax     | ip = ax   | jmp
 jmp  42     | ip = 42   | jmp_i
 jcnxz ax     | if (cx) jmp(ax); | jcnxz
 jcnxz 42     | if (cx) jmp(42); | jcxz_i
+je   42     | if (ZF==1) jmp(42) | je_i
+jne  42     | if (ZF==0) jmp(42) | jne_i
+jg   42     | if (ZF==0 and SF==OF) jmp(42) | jg_i
+jge  42     | if (SF==OF) jmp(42) | jge_i
+jl   42     | if (SF!=OF) jmp(42) | jl_i
+jle  42     | if (ZF==1 or SF!=OF) jmp(42) | jle_i
 int  ax     | intrpt(ax) | int
 int  0      | intrpt(0)  | int_i
 push ax     | s[--sp] = ax | 

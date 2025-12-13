@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
+#include "register.h"
 
 using namespace std;
 
@@ -12,6 +13,40 @@ extern const unsigned memory_size; // because 64K is enough for every thing
 extern int regs[14];
 extern  vector<char> memory;
 extern bool runing;
+
+// +++ Helper functions for flags +++
+void set_flag(unsigned mask, bool on) {
+    if (on) {
+        regs[PSW] |= mask;
+    } else {
+        regs[PSW] &= ~mask;
+    }
+}
+
+void set_zf(unsigned result) {
+    set_flag(ZF_MASK, (result & 0xFFFF) == 0);
+}
+
+void set_sf(unsigned result) {
+    set_flag(SF_MASK, (result & 0x8000) != 0);
+}
+
+// Overflow for addition:
+// Occurs if signs of operands are the same, but sign of result is different.
+void set_of_add(unsigned op1, unsigned op2, unsigned result) {
+    bool overflow = ((op1 & 0x8000) == (op2 & 0x8000)) && ((op1 & 0x8000) != (result & 0x8000));
+    set_flag(OF_MASK, overflow);
+}
+
+// Overflow for subtraction (op1 - op2):
+// Occurs if signs of operands are different, and sign of result is different from op1's sign.
+// A simpler way to check is if sign of op1 is different from sign of result,
+// and sign of op2 is the same as the sign of the result.
+void set_of_sub(unsigned op1, unsigned op2, unsigned result) {
+    bool overflow = ((op1 & 0x8000) != (op2 & 0x8000)) && ((op1 & 0x8000) != (result & 0x8000));
+    set_flag(OF_MASK, overflow);
+}
+
 
 // load and store is 16 bit
 unsigned load(unsigned pos) {
@@ -90,21 +125,66 @@ void do_ins(unsigned ins) // 32 bit
         cout<<"ADD ";
         if (is_idata) {
             cout<<reg_repr[reg]<<","<<uidt;
-            regs[reg] = regs[reg] + uidt;
+            unsigned op1 = regs[reg];
+            unsigned op2 = uidt;
+            regs[reg] = op1 + op2;
             cout<<" => "<<regs[reg]<<endl;
+
+            set_zf(regs[reg]);
+            set_sf(regs[reg]);
+            set_of_add(op1, op2, regs[reg]);
         } else {
             cout<<reg_repr[reg1]<<","<<reg_repr[reg2];
-            regs[reg1] = regs[reg1] + regs[reg2];
+            unsigned op1 = regs[reg1];
+            unsigned op2 = regs[reg2];
+            regs[reg1] = op1 + op2;
             cout<<" => " <<regs[reg1]<<endl;
+
+            set_zf(regs[reg1]);
+            set_sf(regs[reg1]);
+            set_of_add(op1, op2, regs[reg1]);
         }
         break;
     case SUB:
-        cout<<"SUB"<<endl;
+        cout<<"SUB ";
         if (is_idata) {
-            regs[reg] = regs[reg] - uidt;
+            cout<<reg_repr[reg]<<","<<uidt;
+            unsigned op1 = regs[reg];
+            unsigned op2 = uidt;
+            regs[reg] = op1 - op2;
+            cout<<" => "<<regs[reg]<<endl;
+
+            set_zf(regs[reg]);
+            set_sf(regs[reg]);
+            set_of_sub(op1, op2, regs[reg]);
         } else {
-            regs[reg1] = regs[reg1] - regs[reg2];
+            cout<<reg_repr[reg1]<<","<<reg_repr[reg2];
+            unsigned op1 = regs[reg1];
+            unsigned op2 = regs[reg2];
+            regs[reg1] = op1 - op2;
+            cout<<" => " <<regs[reg1]<<endl;
+
+            set_zf(regs[reg1]);
+            set_sf(regs[reg1]);
+            set_of_sub(op1, op2, regs[reg1]);
         }
+        break;
+    case CMP:
+        cout<<"CMP ";
+        unsigned op1_cmp, op2_cmp, res_cmp;
+        if (is_idata) {
+            cout<<reg_repr[reg]<<","<<uidt<<endl;
+            op1_cmp = regs[reg];
+            op2_cmp = uidt;
+        } else {
+            cout<<reg_repr[reg1]<<","<<reg_repr[reg2]<<endl;
+            op1_cmp = regs[reg1];
+            op2_cmp = regs[reg2];
+        }
+        res_cmp = op1_cmp - op2_cmp;
+        set_zf(res_cmp);
+        set_sf(res_cmp);
+        set_of_sub(op1_cmp, op2_cmp, res_cmp);
         break;
     case MUL:
         cout<<"MUL"<<endl;
@@ -182,6 +262,114 @@ void do_ins(unsigned ins) // 32 bit
         }
         ip_modified = true;
         break;
+    case JE:
+    {
+        printf("JE ");
+        if (regs[PSW] & ZF_MASK) {
+             if (is_idata) {
+                regs[IP] += to_signed(uidt);
+                printf("%d\n", to_signed(uidt));
+            } else {
+                regs[IP] = regs[reg1]; // long jump
+                printf("[%s](%d)\n", reg_repr[reg1].c_str(), regs[reg1]);
+            }
+            ip_modified = true;
+        } else {
+            printf("not taken\n");
+        }
+    }
+    break;
+    case JNE:
+    {
+        printf("JNE ");
+        if (!(regs[PSW] & ZF_MASK)) {
+             if (is_idata) {
+                regs[IP] += to_signed(uidt);
+                printf("%d\n", to_signed(uidt));
+            } else {
+                regs[IP] = regs[reg1]; // long jump
+                printf("[%s](%d)\n", reg_repr[reg1].c_str(), regs[reg1]);
+            }
+            ip_modified = true;
+        } else {
+            printf("not taken\n");
+        }
+    }
+    break;
+    case JG: // > (signed)
+    {
+        printf("JG ");
+        bool zf_clear = !(regs[PSW] & ZF_MASK);
+        bool sf_eq_of = ((regs[PSW] & SF_MASK) != 0) == ((regs[PSW] & OF_MASK) != 0);
+        if (zf_clear && sf_eq_of) {
+             if (is_idata) {
+                regs[IP] += to_signed(uidt);
+                printf("%d\n", to_signed(uidt));
+            } else {
+                regs[IP] = regs[reg1]; // long jump
+                printf("[%s](%d)\n", reg_repr[reg1].c_str(), regs[reg1]);
+            }
+            ip_modified = true;
+        } else {
+            printf("not taken\n");
+        }
+    }
+    break;
+    case JGE: // >= (signed)
+    {
+        printf("JGE ");
+        bool sf_eq_of_ge = ((regs[PSW] & SF_MASK) != 0) == ((regs[PSW] & OF_MASK) != 0);
+        if (sf_eq_of_ge) {
+             if (is_idata) {
+                regs[IP] += to_signed(uidt);
+                printf("%d\n", to_signed(uidt));
+            } else {
+                regs[IP] = regs[reg1]; // long jump
+                printf("[%s](%d)\n", reg_repr[reg1].c_str(), regs[reg1]);
+            }
+            ip_modified = true;
+        } else {
+            printf("not taken\n");
+        }
+    }
+    break;
+    case JL: // < (signed)
+    {
+        printf("JL ");
+        bool sf_neq_of = ((regs[PSW] & SF_MASK) != 0) != ((regs[PSW] & OF_MASK) != 0);
+        if (sf_neq_of) {
+             if (is_idata) {
+                regs[IP] += to_signed(uidt);
+                printf("%d\n", to_signed(uidt));
+            } else {
+                regs[IP] = regs[reg1]; // long jump
+                printf("[%s](%d)\n", reg_repr[reg1].c_str(), regs[reg1]);
+            }
+            ip_modified = true;
+        } else {
+            printf("not taken\n");
+        }
+    }
+    break;
+    case JLE: // <= (signed)
+    {
+        printf("JLE ");
+        bool zf_set = (regs[PSW] & ZF_MASK);
+        bool sf_neq_of_le = ((regs[PSW] & SF_MASK) != 0) != ((regs[PSW] & OF_MASK) != 0);
+        if (zf_set || sf_neq_of_le) {
+             if (is_idata) {
+                regs[IP] += to_signed(uidt);
+                printf("%d\n", to_signed(uidt));
+            } else {
+                regs[IP] = regs[reg1]; // long jump
+                printf("[%s](%d)\n", reg_repr[reg1].c_str(), regs[reg1]);
+            }
+            ip_modified = true;
+        } else {
+            printf("not taken\n");
+        }
+    }
+    break;
     case INT: // can be short
         code = is_idata ? uidt : regs[reg1];
         printf("INT %d\n", code);

@@ -52,19 +52,36 @@ string trimbarackets(string word)
 {
 	return word.substr(1, word.size()-2);
 }
+
+string trim(const string& str)
+{
+    size_t first = str.find_first_not_of(" \t\n\r");
+    if (string::npos == first)
+    {
+        return str;
+    }
+    size_t last = str.find_last_not_of(" \t\n\r");
+    return str.substr(first, (last - first + 1));
+}
+
 vector<unsigned> parse_ins(string line)
 {
+    auto comment_pos = line.find(';');
+    if (comment_pos != string::npos) {
+        line = line.substr(0, comment_pos);
+    }
+
 	if (instruct_table.size() == 0) {
 		for (int i = 0; i < instruct_repr.size(); ++i) {
 			// cout<<i<<"=>"<<instruct_repr[i]<<endl;
 			instruct_table[instruct_repr[i]] = i;
 		}
 	}
-	if (line.size() == 0) {
+	if (line.size() == 0 || trim(line).size() == 0) {
 		return {0,0};
 	}
 	auto v = sep2by(line, ' ');
-	string inst = v[0];
+	string inst = trim(v[0]);
 	// inst is instruction
 	// printf("i:%s(%d)\n", inst, strlen(inst));
 	unsigned basic_instr = instruct_table[inst];
@@ -72,8 +89,8 @@ vector<unsigned> parse_ins(string line)
 
 	// read params
 	v = sep2by(v[1], ',');
-	string p1 = v[0];
-	string p2 = v[1];
+	string p1 = trim(v[0]);
+	string p2 = trim(v[1]);
 	// cout<<"p1:"<<p1<<", p2:"<<p2<<"("<<p2.size()<<")"<<endl;
 	int p1i = 0, p2i = 0;
 	int idata = 0;
@@ -100,6 +117,7 @@ vector<unsigned> parse_ins(string line)
 		case SUB:
 		case MUL:
 		case DIV:
+		case CMP:
 			p1i = reg_table[p1];
 			if (is_int(p2)) {
 				is_idata = true;
@@ -130,6 +148,12 @@ vector<unsigned> parse_ins(string line)
 		case JCNXZ:
 		case JMP:
 		case INT:
+		case JE:
+		case JNE:
+		case JG:
+		case JGE:
+		case JL:
+		case JLE:
 			if (is_int(p1)) {
 				is_idata = true;
 				idata = stoi(p1);
