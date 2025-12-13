@@ -113,6 +113,22 @@ vector<unsigned> parse_ins(string line)
 			// printf("p1:%x,p2:%x\n", p1i, p2i);
 			break;
 		case MOV:
+			p1i = reg_table[p1];
+			if (is_int(p2)) {
+				is_idata = true;
+				idata = stoi(p2);
+			} else {
+				p2i = reg_table[p2];
+                // Prohibit direct move between segment registers (e.g., MOV DS, CS)
+                bool is_p1_segment_reg = (p1i >= CS && p1i <= ES);
+                bool is_p2_segment_reg = (p2i >= CS && p2i <= ES);
+
+                if (is_p1_segment_reg && is_p2_segment_reg) {
+                    cerr << "Error: Direct move between segment registers is not allowed (" << p1 << ", " << p2 << ")." << endl;
+                    exit(1);
+                }
+			}
+			break;
 		case ADD:
 		case SUB:
 		case MUL:
@@ -124,7 +140,6 @@ vector<unsigned> parse_ins(string line)
 				idata = stoi(p2);
 			} else {
 				p2i = reg_table[p2];
-				// cout<<"'"<<p2<<"' => "<<p2i<<endl;
 			}
 			break;
 		case NOT:
